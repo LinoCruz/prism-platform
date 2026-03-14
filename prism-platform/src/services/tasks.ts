@@ -4,7 +4,7 @@ export async function getAvailableTasks() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tasks')
-    .select('*, task_versions(*)')
+    .select('*, task_versions!task_versions_task_id_fkey(*)')
     .eq('status', 'available')
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -29,7 +29,7 @@ export async function getMyTasks() {
 
   const { data, error } = await supabase
     .from('task_attempts')
-    .select('*, tasks(*, task_versions(*))')
+    .select('*, tasks(*, task_versions!task_versions_task_id_fkey(*))')
     .eq('trainer_id', user.id)
     .order('claimed_at', { ascending: false })
   if (error) throw error
@@ -40,7 +40,7 @@ export async function getTasksForReview() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tasks')
-    .select('*, task_versions(*), task_attempts(*)')
+    .select('*, task_versions!task_versions_task_id_fkey(*), task_attempts(*)')
     .eq('status', 'in_review')
     .order('created_at', { ascending: true })
   if (error) throw error
