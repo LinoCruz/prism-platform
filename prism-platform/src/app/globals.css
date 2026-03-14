@@ -1,26 +1,204 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #08090d;
+  --bg-surface: #111318;
+  --bg-surface-hover: #191c24;
+  --bg-card: #14161d;
+  --text-primary: rgba(230, 239, 255, 1);
+  --text-secondary: rgba(230, 239, 255, 0.55);
+  --text-muted: rgba(230, 239, 255, 0.3);
+  --accent: rgba(52, 67, 218, 1);
+  --accent-hover: rgba(72, 87, 238, 1);
+  --accent-glow: rgba(52, 67, 218, 0.25);
+  --accent-subtle: rgba(52, 67, 218, 0.1);
+  --border: rgba(230, 239, 255, 0.06);
+  --border-hover: rgba(230, 239, 255, 0.12);
+  --success: #22c55e;
+  --error: #ef4444;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--bg-surface);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-card: var(--bg-card);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-muted: var(--text-muted);
+  --color-secondary: var(--text-secondary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-surface-hover) transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light text for slide content panels */
+.slide-light-text {
+  color: rgba(255, 255, 255, 0.92);
+}
+.slide-light-text p,
+.slide-light-text li,
+.slide-light-text span {
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ─── Animations ───────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--accent-glow), 0 0 60px transparent; }
+  50% { box-shadow: 0 0 30px var(--accent-glow), 0 0 80px var(--accent-glow); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes film-grain {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.06; }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  0%, 100% { border-color: var(--accent); }
+  50% { border-color: transparent; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ─── Background effects ──────────────────────────── */
+
+.bg-gradient-radial {
+  background: radial-gradient(ellipse 60% 50% at 50% -10%, var(--accent-glow) 0%, transparent 60%);
+}
+
+.bg-cinematic {
+  background:
+    /* Core spotlight beam — warm white center */
+    radial-gradient(ellipse 100% 110% at 50% 45%, rgba(255, 245, 220, 0.08) 0%, transparent 70%),
+    /* Spotlight cone — slightly wider warm glow */
+    radial-gradient(ellipse 130% 130% at 50% 40%, rgba(255, 220, 150, 0.06) 0%, transparent 75%),
+    /* Prism color scatter — red */
+    radial-gradient(ellipse 60% 70% at 35% 50%, rgba(239, 68, 68, 0.07) 0%, transparent 65%),
+    /* Prism color scatter — orange */
+    radial-gradient(ellipse 55% 65% at 40% 45%, rgba(249, 115, 22, 0.06) 0%, transparent 60%),
+    /* Prism color scatter — yellow */
+    radial-gradient(ellipse 50% 60% at 45% 42%, rgba(234, 179, 8, 0.05) 0%, transparent 55%),
+    /* Prism color scatter — green */
+    radial-gradient(ellipse 55% 65% at 55% 42%, rgba(34, 197, 94, 0.06) 0%, transparent 60%),
+    /* Prism color scatter — blue (dominant) */
+    radial-gradient(ellipse 110% 110% at 50% 45%, rgba(52, 67, 218, 0.15) 0%, transparent 75%),
+    /* Prism color scatter — indigo */
+    radial-gradient(ellipse 55% 65% at 60% 45%, rgba(99, 102, 241, 0.07) 0%, transparent 60%),
+    /* Prism color scatter — violet */
+    radial-gradient(ellipse 60% 70% at 65% 50%, rgba(168, 85, 247, 0.07) 0%, transparent 65%),
+    /* Atmospheric haze */
+    radial-gradient(ellipse 150% 150% at 50% 50%, rgba(52, 67, 218, 0.05) 0%, transparent 85%);
+}
+
+/* Film-grain overlay */
+.film-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  animation: film-grain 4s steps(4) infinite;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+/* Minimal transparent header */
+.bg-prism-header {
+  position: relative;
+  background: transparent;
+  border-bottom: 1px solid rgba(230, 239, 255, 0.04);
+}
+
+.bg-prism-header::before {
+  content: none;
+}
+
+.bg-prism-header::after {
+  content: none;
+}
+
+/* ─── Slide Card ────────────────────────────────── */
+
+.slide-card {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.slide-card-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  opacity: 0.45;
+  mix-blend-mode: overlay;
+}
+
+/* Progress bar shimmer */
+.progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    rgba(230, 239, 255, 0.6) 50%,
+    var(--accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s ease-in-out infinite;
 }

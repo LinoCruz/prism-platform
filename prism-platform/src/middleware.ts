@@ -27,6 +27,16 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
 
+  // Enforce 3-day max session — force re-login after 3 days
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
+  if (user?.last_sign_in_at) {
+    const lastSignIn = new Date(user.last_sign_in_at).getTime()
+    if (Date.now() - lastSignIn > THREE_DAYS_MS) {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+    }
+  }
+
   if (!user && !isAuthRoute) {
     return NextResponse.redirect(new URL('/auth/sign-in', request.url))
   }
