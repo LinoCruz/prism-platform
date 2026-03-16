@@ -38,7 +38,7 @@ export function AdminShell({ name, roster }: { name: string; roster: RosterUser[
       </aside>
 
       {/* Content area */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 p-8 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-inner">
         {active === 'home' && (
           <div className="flex flex-col justify-center h-full py-16">
             <p className="text-3xl font-semibold tracking-tight">

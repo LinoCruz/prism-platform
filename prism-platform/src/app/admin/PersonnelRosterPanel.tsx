@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { submitRoleChange } from './actions'
 
 const AVAILABLE_ROLES = ['trainee', 'trainer', 'reviewer', 'auditor', 'admin'] as const
@@ -21,13 +22,30 @@ export type RosterUser = {
 
 export function PersonnelRosterPanel({ users }: { users: RosterUser[] }) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [pendingKey, setPendingKey] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    if (!openDropdown) return
-    function close() { setOpenDropdown(null) }
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [openDropdown])
+  function handleRoleChange(userId: string, role: string, action: 'add' | 'remove') {
+    const key = `${userId}:${role}:${action}`
+    setPendingKey(key)
+    setOpenDropdown(null)
+
+    startTransition(async () => {
+      const fd = new FormData()
+      fd.set('userId', userId)
+      fd.set('role', role)
+      fd.set('action', action)
+
+      try {
+        await submitRoleChange(fd)
+        toast.success(action === 'add' ? `Role "${role}" assigned.` : `Role "${role}" removed.`)
+      } catch {
+        toast.error(`Failed to ${action === 'add' ? 'assign' : 'remove'} role "${role}".`)
+      } finally {
+        setPendingKey(null)
+      }
+    })
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,42 +75,56 @@ export function PersonnelRosterPanel({ users }: { users: RosterUser[] }) {
               </td>
               <td className="py-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                  {u.roles.map(r => (
-                    <form action={submitRoleChange} key={r} className="inline m-0">
-                      <input type="hidden" name="userId" value={u.user_id} />
-                      <input type="hidden" name="role" value={r} />
-                      <input type="hidden" name="action" value="remove" />
-                      <button type="submit" title={`Remove ${r}`} className="inline-flex items-center gap-1 rounded bg-secondary/10 px-2 py-1 text-xs font-mono tracking-wide text-primary hover:bg-red-500/20 hover:text-red-400 transition-colors border border-border">
+                  {u.roles.map(r => {
+                    const key = `${u.user_id}:${r}:remove`
+                    const busy = isPending && pendingKey === key
+                    return (
+                      <button
+                        key={r}
+                        disabled={busy}
+                        onClick={() => handleRoleChange(u.user_id, r, 'remove')}
+                        title={`Remove ${r}`}
+                        className="inline-flex items-center gap-1 rounded bg-secondary/10 px-2 py-1 text-xs font-mono tracking-wide text-primary hover:bg-red-500/20 hover:text-red-400 transition-colors border border-border disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {busy ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" /> : null}
                         {r} &times;
                       </button>
-                    </form>
-                  ))}
+                    )
+                  })}
+
                   <div className="relative inline-block">
                     <span
-                      onClick={e => { e.stopPropagation(); setOpenDropdown(openDropdown === u.user_id ? null : u.user_id) }}
+                      onClick={() => setOpenDropdown(openDropdown === u.user_id ? null : u.user_id)}
                       className="inline-flex items-center justify-center rounded border border-dashed border-border px-2 py-1 text-xs cursor-pointer hover:bg-surface-hover hover:border-accent text-muted transition-all select-none"
                     >
                       + Add
                     </span>
                     {openDropdown === u.user_id && (
-                      <div
-                        onClick={e => e.stopPropagation()}
-                        className="absolute left-0 top-full mt-1 flex flex-col bg-surface border border-border rounded-lg shadow-xl z-[100] min-w-[120px] overflow-hidden"
-                      >
-                        {AVAILABLE_ROLES.filter(ar => !u.roles.includes(ar)).map(ar => (
-                          <form action={submitRoleChange} key={ar} className="m-0 border-b border-border/50 last:border-0">
-                            <input type="hidden" name="userId" value={u.user_id} />
-                            <input type="hidden" name="role" value={ar} />
-                            <input type="hidden" name="action" value="add" />
-                            <button type="submit" className="w-full text-left px-4 py-2 text-xs font-mono text-secondary hover:text-primary hover:bg-surface-hover transition-colors">
-                              {ar}
-                            </button>
-                          </form>
-                        ))}
-                        {AVAILABLE_ROLES.filter(ar => !u.roles.includes(ar)).length === 0 && (
-                          <div className="px-4 py-2 text-xs text-muted">All roles assigned</div>
-                        )}
-                      </div>
+                      <>
+                        {/* Backdrop — closes dropdown when clicking outside */}
+                        <div className="fixed inset-0 z-[99]" onClick={() => setOpenDropdown(null)} />
+                        {/* Dropdown — sits above the backdrop */}
+                        <div className="absolute left-0 top-full mt-1 flex flex-col bg-surface border border-border rounded-lg shadow-xl z-[100] min-w-[120px] overflow-hidden">
+                          {AVAILABLE_ROLES.filter(ar => !u.roles.includes(ar)).map(ar => {
+                            const key = `${u.user_id}:${ar}:add`
+                            const busy = isPending && pendingKey === key
+                            return (
+                              <button
+                                key={ar}
+                                disabled={busy}
+                                onClick={() => handleRoleChange(u.user_id, ar, 'add')}
+                                className="w-full text-left px-4 py-2 text-xs font-mono text-secondary hover:text-primary hover:bg-surface-hover transition-colors border-b border-border/50 last:border-0 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                {busy ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" /> : null}
+                                {ar}
+                              </button>
+                            )
+                          })}
+                          {AVAILABLE_ROLES.filter(ar => !u.roles.includes(ar)).length === 0 && (
+                            <div className="px-4 py-2 text-xs text-muted">All roles assigned</div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
