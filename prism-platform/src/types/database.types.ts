@@ -169,6 +169,44 @@ export type Database = {
         }
         Relationships: []
       }
+      form_answers: {
+        Row: {
+          answer_id: string
+          answers: Json
+          created_at: string
+          form_id: string
+          form_title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          answer_id?: string
+          answers?: Json
+          created_at?: string
+          form_id: string
+          form_title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          answer_id?: string
+          answers?: Json
+          created_at?: string
+          form_id?: string
+          form_title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          }
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -696,6 +734,8 @@ export type Database = {
           final_signedoff_at: string | null
           is_reported: boolean
           report_note: string | null
+          reservation_expires_at: string | null
+          reserved_for_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }
@@ -706,6 +746,8 @@ export type Database = {
           final_signedoff_at?: string | null
           is_reported?: boolean
           report_note?: string | null
+          reservation_expires_at?: string | null
+          reserved_for_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_id?: string
         }
@@ -716,6 +758,8 @@ export type Database = {
           final_signedoff_at?: string | null
           is_reported?: boolean
           report_note?: string | null
+          reservation_expires_at?: string | null
+          reserved_for_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_id?: string
         }
@@ -726,6 +770,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "task_versions"
             referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "tasks_reserved_for_id_fkey"
+            columns: ["reserved_for_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -883,6 +934,7 @@ export type Database = {
         | "in_review"
         | "rework"
         | "signed_off"
+        | "reserved"
       user_role: "trainee" | "trainer" | "reviewer" | "auditor" | "admin"
       version_source: "trainer" | "reviewer" | "auditor"
     }
@@ -1032,6 +1084,7 @@ export const Constants = {
         "in_review",
         "rework",
         "signed_off",
+        "reserved",
       ],
       user_role: ["trainee", "trainer", "reviewer", "auditor", "admin"],
       version_source: ["trainer", "reviewer", "auditor"],
