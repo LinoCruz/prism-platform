@@ -1,5 +1,5 @@
-import { getCurrentUserRoles } from '@/services/users'
-import { getCurrentUser } from '@/services/users'
+import { getCurrentUserRoles, getCurrentUser } from '@/services/users'
+import { getAllUsersWithRoles } from '@/services/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
@@ -11,7 +11,10 @@ export default async function AdminDashboard() {
     redirect('/tasks')
   }
 
-  const user = await getCurrentUser()
+  const [user, roster] = await Promise.all([
+    getCurrentUser(),
+    getAllUsersWithRoles(),
+  ])
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background text-foreground">
@@ -32,7 +35,7 @@ export default async function AdminDashboard() {
           <p className="mt-2 text-secondary">Manage personnel roles and task datasets.</p>
         </div>
 
-        <AdminShell name={user.name ?? 'Admin'} />
+        <AdminShell name={user.name ?? 'Admin'} roster={roster} />
       </main>
     </div>
   )

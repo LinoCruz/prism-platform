@@ -1,12 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { updateUserRole, uploadTaskDataset, getAllUsersWithRoles } from '@/services/admin'
+import { updateUserRole, uploadTaskDataset } from '@/services/admin'
 import type { Database } from '@/types/database.types'
-
-export async function fetchPersonnelRoster() {
-  return getAllUsersWithRoles()
-}
 
 type Role = Database['public']['Enums']['user_role']
 

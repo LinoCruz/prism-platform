@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PersonnelRosterPanel } from './PersonnelRosterPanel'
+import { PersonnelRosterPanel, type RosterUser } from './PersonnelRosterPanel'
 import { DatasetUploader } from './DatasetUploader'
 
 type Panel = 'home' | 'roster' | 'dataset' | 'placeholder1' | 'placeholder2' | 'placeholder3'
@@ -17,7 +17,7 @@ const NAV_ITEMS: { id: Panel; label: string }[] = [
 const BTN_BASE   = 'border-white/20 text-white/50 hover:bg-orange-500/10 hover:text-orange-300 hover:border-orange-400/30'
 const BTN_ACTIVE = 'bg-orange-500/20 border-orange-400/60 text-orange-300'
 
-export function AdminShell({ name }: { name: string }) {
+export function AdminShell({ name, roster }: { name: string; roster: RosterUser[] }) {
   const [active, setActive] = useState<Panel>('home')
 
   return (
@@ -48,7 +48,7 @@ export function AdminShell({ name }: { name: string }) {
           </div>
         )}
 
-        {active === 'roster' && <PersonnelRosterPanel />}
+        {active === 'roster' && <PersonnelRosterPanel users={roster} />}
 
         {active === 'dataset' && <DatasetUploader />}
 
