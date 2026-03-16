@@ -1,8 +1,11 @@
 import { getAvailableTasks } from '@/services/tasks'
+import { getCurrentUserRoles } from '@/services/users'
 import { claimTask, signOut } from './actions'
 import { createClient } from '@/lib/supabase/server'
 import Logo from '@/components/Logo'
 import { PrismStripes } from '@/components/PrismStripes'
+import { Navbar } from '@/components/Navbar'
+import Link from 'next/link'
 
 export default async function TasksPage() {
   const supabase = await createClient()
@@ -10,6 +13,8 @@ export default async function TasksPage() {
   const name = user?.user_metadata?.full_name ?? user?.email ?? 'there'
 
   const tasks = await getAvailableTasks()
+  const roles = await getCurrentUserRoles()
+  const isAdmin = roles.includes('admin')
 
   return (
     <div className="min-h-screen relative overflow-hidden film-grain bg-background text-foreground">
@@ -17,21 +22,9 @@ export default async function TasksPage() {
       <div className="fixed inset-0 bg-cinematic pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-10 pt-4">
-        <div className="mx-auto max-w-5xl px-6 flex items-center justify-between">
-          <Logo size="sm" />
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-full border border-border px-4 py-1.5 text-sm text-secondary hover:text-foreground hover:bg-surface-hover hover:border-accent/30 transition-all"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-      </header>
+      <Navbar />
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-12">
+      <main className="relative z-10 mx-auto max-w-5xl px-6 py-4">
         <div className="mb-10">
           <h1 className="text-3xl font-semibold tracking-tight">Available Tasks</h1>
           <p className="mt-2 text-sm text-secondary">

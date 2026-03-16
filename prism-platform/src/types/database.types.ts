@@ -733,6 +733,7 @@ export type Database = {
           external_id: string | null
           final_signedoff_at: string | null
           is_reported: boolean
+          question: string | null
           report_note: string | null
           reservation_expires_at: string | null
           reserved_for_id: string | null
@@ -745,6 +746,7 @@ export type Database = {
           external_id?: string | null
           final_signedoff_at?: string | null
           is_reported?: boolean
+          question?: string | null
           report_note?: string | null
           reservation_expires_at?: string | null
           reserved_for_id?: string | null
@@ -757,6 +759,7 @@ export type Database = {
           external_id?: string | null
           final_signedoff_at?: string | null
           is_reported?: boolean
+          question?: string | null
           report_note?: string | null
           reservation_expires_at?: string | null
           reserved_for_id?: string | null
