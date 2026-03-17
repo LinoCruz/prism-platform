@@ -41,6 +41,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/sign-in', request.url))
   }
 
+  // Block disabled users — sign them out and redirect to sign-in
+  if (user && !isAuthRoute) {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('status')
+      .eq('user_id', user.id)
+      .single()
+
+    if (userData?.status === 'disabled') {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+    }
+  }
+
   if (user && request.nextUrl.pathname === '/auth/sign-in') {
     return NextResponse.redirect(new URL('/tasks', request.url))
   }

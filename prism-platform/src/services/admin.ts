@@ -24,6 +24,24 @@ export async function getAllUsersWithRoles() {
   return users
 }
 
+export type UserStatus = 'onboarding' | 'pending_entry_quiz' | 'training' | 'active' | 'disabled'
+
+export async function updateUserStatus(userId: string, status: UserStatus) {
+  await checkAdmin()
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.id === userId) {
+    throw new Error('Admins cannot change their own status')
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ status })
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
 export async function updateUserRole(userId: string, role: Role) {
   await checkAdmin()
   const supabase = await createClient()

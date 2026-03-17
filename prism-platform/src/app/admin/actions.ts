@@ -1,11 +1,21 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { updateUserRole, uploadTaskDataset } from '@/services/admin'
+import { updateUserRole, updateUserStatus, uploadTaskDataset, type UserStatus } from '@/services/admin'
 import { createInstruction, updateInstruction, deleteInstruction } from '@/services/instructions'
 import type { Database } from '@/types/database.types'
 
 type Role = Database['public']['Enums']['user_role']
+
+export async function submitStatusChange(formData: FormData) {
+  const userId = formData.get('userId') as string
+  const status = formData.get('status') as UserStatus
+
+  if (!userId || !status) return
+
+  await updateUserStatus(userId, status)
+  revalidatePath('/admin')
+}
 
 export async function submitRoleChange(formData: FormData) {
   const userId = formData.get('userId') as string
