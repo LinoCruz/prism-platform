@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd prism-platform && npm run vercel-build",
+  "outputDirectory": "prism-platform/.next",
+  "installCommand": "cd prism-platform && npm install",
+  "framework": "nextjs"
+}
