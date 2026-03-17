@@ -14,42 +14,30 @@ export async function checkAdmin() {
 export async function getAllUsersWithRoles() {
   await checkAdmin()
   const supabase = await createClient()
-  
-  const { data: users, error: usersError } = await supabase
+
+  const { data: users, error } = await supabase
     .from('users')
     .select('*')
     .order('created_at', { ascending: false })
-  
-  if (usersError) throw usersError
 
-  const { data: roles, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('*')
-
-  if (rolesError) throw rolesError
-
-  return users.map(user => ({
-    ...user,
-    roles: roles.filter(r => r.user_id === user.user_id).map(r => r.role)
-  }))
+  if (error) throw error
+  return users
 }
 
-export async function updateUserRole(userId: string, role: Role, remove: boolean) {
+export async function updateUserRole(userId: string, role: Role) {
   await checkAdmin()
   const supabase = await createClient()
 
-  if (remove) {
-    const { error } = await supabase
-      .from('user_roles')
-      .delete()
-      .match({ user_id: userId, role })
-    if (error) throw error
-  } else {
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, role })
-    if (error) throw error
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.id === userId) {
+    throw new Error('Admins cannot change their own role')
   }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ role })
+    .eq('user_id', userId)
+  if (error) throw error
 }
 
 export async function uploadTaskDataset(tasks: { external_id: string, question: string }[]) {

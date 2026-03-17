@@ -207,6 +207,50 @@ export type Database = {
           }
         ]
       }
+      instructions: {
+        Row: {
+          instruction_id: string
+          title: string
+          content: string
+          target_role: Database["public"]["Enums"]["user_role"]
+          display_order: number
+          published: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          instruction_id?: string
+          title: string
+          content: string
+          target_role: Database["public"]["Enums"]["user_role"]
+          display_order?: number
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          instruction_id?: string
+          title?: string
+          content?: string
+          target_role?: Database["public"]["Enums"]["user_role"]
+          display_order?: number
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -860,40 +904,12 @@ export type Database = {
           },
         ]
       }
-      user_roles: {
-        Row: {
-          granted_at: string
-          id: string
-          role: Database["public"]["Enums"]["user_role"]
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["user_role"]
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       users: {
         Row: {
           created_at: string
           email: string
           name: string
+          role: Database["public"]["Enums"]["user_role"]
           status: string
           user_id: string
         }
@@ -901,6 +917,7 @@ export type Database = {
           created_at?: string
           email: string
           name: string
+          role?: Database["public"]["Enums"]["user_role"]
           status?: string
           user_id?: string
         }
@@ -908,6 +925,7 @@ export type Database = {
           created_at?: string
           email?: string
           name?: string
+          role?: Database["public"]["Enums"]["user_role"]
           status?: string
           user_id?: string
         }

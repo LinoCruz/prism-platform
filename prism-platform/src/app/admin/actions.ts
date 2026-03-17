@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { updateUserRole, uploadTaskDataset } from '@/services/admin'
+import { createInstruction, updateInstruction, deleteInstruction } from '@/services/instructions'
 import type { Database } from '@/types/database.types'
 
 type Role = Database['public']['Enums']['user_role']
@@ -9,11 +10,10 @@ type Role = Database['public']['Enums']['user_role']
 export async function submitRoleChange(formData: FormData) {
   const userId = formData.get('userId') as string
   const role = formData.get('role') as Role
-  const action = formData.get('action') as 'add' | 'remove'
 
-  if (!userId || !role || !action) return
+  if (!userId || !role) return
 
-  await updateUserRole(userId, role, action === 'remove')
+  await updateUserRole(userId, role)
   revalidatePath('/admin')
 }
 
@@ -42,4 +42,51 @@ export async function submitDataset(formData: FormData) {
   }
 
   revalidatePath('/admin')
+}
+
+export async function submitCreateInstruction(formData: FormData) {
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+  const target_role = formData.get('target_role') as Role
+  const display_order = parseInt(formData.get('display_order') as string) || 0
+
+  if (!title || !content || !target_role) return
+
+  await createInstruction({ title, content, target_role, display_order })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitUpdateInstruction(formData: FormData) {
+  const instructionId = formData.get('instructionId') as string
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+  const target_role = formData.get('target_role') as Role
+  const display_order = parseInt(formData.get('display_order') as string) || 0
+  const published = formData.get('published') === 'true'
+
+  if (!instructionId) return
+
+  await updateInstruction(instructionId, { title, content, target_role, display_order, published })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitDeleteInstruction(formData: FormData) {
+  const instructionId = formData.get('instructionId') as string
+  if (!instructionId) return
+
+  await deleteInstruction(instructionId)
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitTogglePublished(formData: FormData) {
+  const instructionId = formData.get('instructionId') as string
+  const published = formData.get('published') === 'true'
+  if (!instructionId) return
+
+  await updateInstruction(instructionId, { published })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
 }

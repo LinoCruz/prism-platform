@@ -3,21 +3,33 @@
 import { useState } from 'react'
 import { PersonnelRosterPanel, type RosterUser } from './PersonnelRosterPanel'
 import { DatasetUploader } from './DatasetUploader'
+import { InstructionsPanel } from './InstructionsPanel'
+import type { Instruction } from '@/services/instructions'
 
-type Panel = 'home' | 'roster' | 'dataset' | 'placeholder1' | 'placeholder2' | 'placeholder3'
+type Panel = 'home' | 'roster' | 'dataset' | 'instructions' | 'placeholder1' | 'placeholder2'
 
 const NAV_ITEMS: { id: Panel; label: string }[] = [
   { id: 'roster',       label: 'Personnel Roster'   },
   { id: 'dataset',      label: 'Dataset Deployment' },
+  { id: 'instructions', label: 'Instructions'        },
   { id: 'placeholder1', label: 'Placeholder 1'      },
   { id: 'placeholder2', label: 'Placeholder 2'      },
-  { id: 'placeholder3', label: 'Placeholder 3'      },
 ]
 
 const BTN_BASE   = 'border-white/20 text-white/50 hover:bg-orange-500/10 hover:text-orange-300 hover:border-orange-400/30'
 const BTN_ACTIVE = 'bg-orange-500/20 border-orange-400/60 text-orange-300'
 
-export function AdminShell({ name, roster }: { name: string; roster: RosterUser[] }) {
+export function AdminShell({
+  name,
+  roster,
+  currentUserId,
+  instructions,
+}: {
+  name: string
+  roster: RosterUser[]
+  currentUserId: string
+  instructions: Instruction[]
+}) {
   const [active, setActive] = useState<Panel>('home')
 
   return (
@@ -48,11 +60,13 @@ export function AdminShell({ name, roster }: { name: string; roster: RosterUser[
           </div>
         )}
 
-        {active === 'roster' && <PersonnelRosterPanel users={roster} />}
+        {active === 'roster' && <PersonnelRosterPanel users={roster} currentUserId={currentUserId} />}
 
         {active === 'dataset' && <DatasetUploader />}
 
-        {(active === 'placeholder1' || active === 'placeholder2' || active === 'placeholder3') && (
+        {active === 'instructions' && <InstructionsPanel instructions={instructions} />}
+
+        {(active === 'placeholder1' || active === 'placeholder2') && (
           <div className="flex flex-col justify-center h-full py-16">
             <p className="text-xl font-medium text-muted">Coming soon.</p>
             <p className="mt-2 text-sm text-muted/60">This section is not yet implemented.</p>

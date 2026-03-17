@@ -1,16 +1,28 @@
 import Link from 'next/link'
 import Logo from './Logo'
-import { getCurrentUserRoles } from '@/services/users'
-import { signOut } from '@/app/tasks/actions' // Reuse the signout from tasks or create a global one
+import { getCurrentUser } from '@/services/users'
+import { signOut } from '@/app/tasks/actions'
+
+const ROLE_RANK: Record<string, number> = {
+  trainee: 1, trainer: 2, reviewer: 3, auditor: 4, admin: 5,
+}
+
+function atLeast(userRole: string, required: string): boolean {
+  return (ROLE_RANK[userRole] ?? 0) >= (ROLE_RANK[required] ?? 0)
+}
 
 export async function Navbar() {
-  let isAdmin = false
+  let role = 'trainee'
   try {
-    const roles = await getCurrentUserRoles()
-    isAdmin = roles.includes('admin')
-  } catch (err) {
+    const user = await getCurrentUser()
+    role = user.role
+  } catch {
     // Not authenticated
   }
+
+  const isReviewer = atLeast(role, 'reviewer')
+  const isAuditor  = atLeast(role, 'auditor')
+  const isAdmin    = atLeast(role, 'admin')
 
   return (
     <header className="relative z-10 pt-4 pb-4 border-b border-border/10 mb-8">
@@ -22,14 +34,20 @@ export async function Navbar() {
           <nav className="hidden md:flex gap-6 text-sm font-medium text-secondary">
             <Link href="/tasks" className="hover:text-primary transition-colors">Available Tasks</Link>
             <Link href="/my-tasks" className="hover:text-primary transition-colors">My Tasks</Link>
-            <Link href="/reviews" className="hover:text-primary transition-colors">Reviews</Link>
+            <Link href="/instructions" className="hover:text-primary transition-colors">Instructions</Link>
+            {isReviewer && (
+              <Link href="/reviews" className="hover:text-primary transition-colors">Review Queue</Link>
+            )}
+            {isAuditor && (
+              <Link href="/audits" className="hover:text-primary transition-colors">Audit Queue</Link>
+            )}
           </nav>
         </div>
-        
+
         <div className="flex items-center gap-4">
           {isAdmin && (
-            <Link 
-              href="/admin" 
+            <Link
+              href="/admin"
               className="rounded-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 text-sm font-medium transition-all shadow-[0_0_15px_rgba(234,88,12,0.3)]"
             >
               Admin

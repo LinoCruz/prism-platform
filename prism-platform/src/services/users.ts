@@ -21,11 +21,12 @@ export async function getCurrentUserRoles() {
   if (!user) throw new Error('Not authenticated')
 
   const { data, error } = await supabase
-    .from('user_roles')
-    .select('role, granted_at')
+    .from('users')
+    .select('role')
     .eq('user_id', user.id)
+    .single()
   if (error) throw error
-  return data.map((r) => r.role)
+  return [data.role]
 }
 
 export async function getNotifications({ unreadOnly = false } = {}) {
