@@ -1,8 +1,8 @@
 export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const sizeClasses = {
-    sm: "text-lg",
-    md: "text-2xl",
-    lg: "text-4xl",
+    sm: "text-xl",
+    md: "text-3xl",
+    lg: "text-5xl",
   };
 
   const dotSizes = {
@@ -12,15 +12,15 @@ export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-end gap-1">
       <span
-        className={`${sizeClasses[size]} font-semibold tracking-tight`}
+        className={`${sizeClasses[size]} font-bold tracking-wide leading-none`}
         style={{ color: "rgba(230, 239, 255, 1)" }}
       >
         Prism
       </span>
       <span
-        className={`${dotSizes[size]} rounded-full inline-block relative -top-[1px]`}
+        className={`${dotSizes[size]} rounded-full inline-block mb-[2px]`}
         style={{ backgroundColor: "rgba(52, 67, 218, 1)" }}
       />
     </div>

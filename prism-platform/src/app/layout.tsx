@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
@@ -26,9 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${outfit.variable} antialiased bg-background text-foreground`}
       >
         {children}
+        <footer className="py-4 border-t border-border/10 text-center text-xs text-muted">
+          Powered by micro1 &mdash; &copy; 2026
+        </footer>
         <Toaster theme="dark" position="bottom-right" richColors />
       </body>
     </html>

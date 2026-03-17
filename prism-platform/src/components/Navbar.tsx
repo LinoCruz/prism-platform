@@ -33,7 +33,7 @@ export async function Navbar() {
   const isAdmin    = atLeast(role, 'admin')
 
   return (
-    <header className="relative z-10 pt-4 pb-4 border-b border-border/10 mb-8">
+    <header className="relative z-30 pt-4 pb-4 border-b border-border/10 mb-8">
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/tasks" className="hover:opacity-80 transition-opacity">

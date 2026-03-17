@@ -4,15 +4,16 @@ import { useState } from 'react'
 import { PersonnelRosterPanel, type RosterUser } from './PersonnelRosterPanel'
 import { DatasetUploader } from './DatasetUploader'
 import { InstructionsPanel } from './InstructionsPanel'
+import { TasksManagementPanel } from './TasksManagementPanel'
 import type { Instruction } from '@/services/instructions'
 
-type Panel = 'home' | 'roster' | 'dataset' | 'instructions' | 'placeholder1' | 'placeholder2'
+type Panel = 'home' | 'roster' | 'dataset' | 'instructions' | 'tasks' | 'placeholder2'
 
 const NAV_ITEMS: { id: Panel; label: string }[] = [
   { id: 'roster',       label: 'Personnel Roster'   },
   { id: 'dataset',      label: 'Dataset Deployment' },
   { id: 'instructions', label: 'Instructions'        },
-  { id: 'placeholder1', label: 'Placeholder 1'      },
+  { id: 'tasks',        label: 'Task Management'    },
   { id: 'placeholder2', label: 'Placeholder 2'      },
 ]
 
@@ -66,7 +67,9 @@ export function AdminShell({
 
         {active === 'instructions' && <InstructionsPanel instructions={instructions} />}
 
-        {(active === 'placeholder1' || active === 'placeholder2') && (
+        {active === 'tasks' && <TasksManagementPanel />}
+
+        {active === 'placeholder2' && (
           <div className="flex flex-col justify-center h-full py-16">
             <p className="text-xl font-medium text-muted">Coming soon.</p>
             <p className="mt-2 text-sm text-muted/60">This section is not yet implemented.</p>
