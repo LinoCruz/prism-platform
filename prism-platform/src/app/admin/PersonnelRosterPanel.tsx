@@ -26,12 +26,15 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export type RosterUser = {
-  user_id:       string
-  name:          string
-  email:         string
-  status:        string
-  role:          string
-  last_login_at: string | null
+  user_id:        string
+  display_name:   string
+  first_name:     string | null
+  last_name:      string | null
+  email:          string
+  personal_email: string | null
+  status:         string
+  role:           string
+  last_login_at:  string | null
 }
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
@@ -109,7 +112,8 @@ export function PersonnelRosterPanel({ users, currentUserId }: { users: RosterUs
         <thead>
           <tr className="border-b border-border text-sm text-secondary">
             <th className="pb-3 font-medium">Name</th>
-            <th className="pb-3 font-medium">Email</th>
+            <th className="pb-3 font-medium">Work Email</th>
+            <th className="pb-3 font-medium">Personal Email</th>
             <th className="pb-3 font-medium">Status</th>
             <th className="pb-3 font-medium">Last Connection</th>
             <th className="pb-3 font-medium">Role</th>
@@ -126,10 +130,11 @@ export function PersonnelRosterPanel({ users, currentUserId }: { users: RosterUs
             return (
               <tr key={u.user_id} className="border-b border-border/50 hover:bg-surface-hover/50 transition-colors">
                 <td className="py-4 font-medium text-primary">
-                  {u.name}
+                  {u.display_name}
                   {isSelf && <span className="ml-2 text-[10px] text-muted font-normal">(you)</span>}
                 </td>
                 <td className="py-4 text-muted">{u.email}</td>
+                <td className="py-4 text-muted">{u.personal_email ?? <span className="text-secondary/40 italic">not set</span>}</td>
 
                 {/* Status dropdown — text colour reflects effective status */}
                 <td className="py-4">

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Logo from './Logo'
 import { getCurrentUser } from '@/services/users'
-import { signOut } from '@/app/tasks/actions'
+import { UserMenu } from './UserMenu'
 
 const ROLE_RANK: Record<string, number> = {
   trainee: 1, trainer: 2, reviewer: 3, auditor: 4, admin: 5,
@@ -13,9 +13,17 @@ function atLeast(userRole: string, required: string): boolean {
 
 export async function Navbar() {
   let role = 'trainee'
+  let displayName = ''
+  let firstName: string | null = null
+  let lastName: string | null = null
+  let personalEmail: string | null = null
   try {
     const user = await getCurrentUser()
     role = user.role
+    displayName = user.display_name
+    firstName = user.first_name
+    lastName = user.last_name
+    personalEmail = user.personal_email
   } catch {
     // Not authenticated
   }
@@ -53,14 +61,7 @@ export async function Navbar() {
               Admin
             </Link>
           )}
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-full border border-border px-4 py-1.5 text-sm text-secondary hover:text-foreground hover:bg-surface-hover hover:border-accent/30 transition-all"
-            >
-              Sign out
-            </button>
-          </form>
+          <UserMenu displayName={displayName} firstName={firstName} lastName={lastName} personalEmail={personalEmail} />
         </div>
       </div>
     </header>

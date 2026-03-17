@@ -907,27 +907,36 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          display_name: string
           email: string
+          first_name: string | null
           last_login_at: string | null
-          name: string
+          last_name: string | null
+          personal_email: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          display_name: string
           email: string
+          first_name?: string | null
           last_login_at?: string | null
-          name: string
+          last_name?: string | null
+          personal_email?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           user_id?: string
         }
         Update: {
           created_at?: string
+          display_name?: string
           email?: string
+          first_name?: string | null
           last_login_at?: string | null
-          name?: string
+          last_name?: string | null
+          personal_email?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           user_id?: string

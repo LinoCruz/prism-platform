@@ -37,7 +37,7 @@ export default async function AdminDashboard() {
           <p className="mt-2 text-secondary">Manage personnel roles and task datasets.</p>
         </div>
 
-        <AdminShell name={user.name ?? 'Admin'} roster={roster} currentUserId={user.user_id} instructions={instructions} />
+        <AdminShell name={user.display_name || 'Admin'} roster={roster} currentUserId={user.user_id} instructions={instructions} />
       </main>
     </div>
   )
