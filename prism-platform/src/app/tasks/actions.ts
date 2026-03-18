@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { claimTask as claimTaskService, submitTask as submitTaskService } from '@/services/tasks'
+import { claimTask as claimTaskService, submitTask as submitTaskService, startTask, cancelTask, finishTask } from '@/services/tasks'
 import { createClient } from '@/lib/supabase/server'
 
 export async function signOut() {
@@ -43,4 +43,31 @@ export async function submitTask(formData: FormData) {
   const versionId = formData.get('versionId') as string
   await submitTaskService(taskId, versionId)
   redirect('/my-tasks')
+}
+
+export async function startTaskAction(taskId: string): Promise<{ error?: string }> {
+  try {
+    await startTask(taskId)
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to start task' }
+  }
+}
+
+export async function cancelTaskAction(taskId: string): Promise<{ error?: string }> {
+  try {
+    await cancelTask(taskId)
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to cancel task' }
+  }
+}
+
+export async function finishTaskAction(taskId: string): Promise<{ error?: string }> {
+  try {
+    await finishTask(taskId)
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to submit task' }
+  }
 }

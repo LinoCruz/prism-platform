@@ -54,7 +54,7 @@ export async function getTasksPaginated({
   if (statusFilter === 'free') {
     query = query.eq('status', 'available').is('reserved_for_id', null)
   } else if (statusFilter === 'assigned') {
-    query = query.or('status.eq.reserved,status.eq.claimed,status.eq.in_review,status.eq.rework,status.eq.signed_off')
+    query = query.or('status.eq.reserved,status.eq.in_progress,status.eq.claimed,status.eq.in_review,status.eq.rework,status.eq.signed_off')
   }
 
   const { data: tasks, error, count } = await query
@@ -399,6 +399,43 @@ export async function updateUserRole(userId: string, role: Role) {
     .from('users')
     .update({ role })
     .eq('user_id', userId)
+  if (error) throw error
+}
+
+// Admin: remove a task from its current trainer (even if in_progress) and make it available again.
+export async function adminDisclaimTask(taskId: string) {
+  await checkAdmin()
+  const supabase = await createClient()
+
+  // Delete the unsubmitted attempt so the next trainer starts fresh
+  await supabase
+    .from('task_attempts')
+    .delete()
+    .eq('task_id', taskId)
+    .is('submitted_at', null)
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ status: 'available' as const, reserved_for_id: null })
+    .eq('task_id', taskId)
+  if (error) throw error
+}
+
+// Admin: reassign a task (even if in_progress) to a different expert.
+export async function adminReassignTask(taskId: string, newExpertId: string) {
+  await checkAdmin()
+  const supabase = await createClient()
+
+  await supabase
+    .from('task_attempts')
+    .delete()
+    .eq('task_id', taskId)
+    .is('submitted_at', null)
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ status: 'reserved' as const, reserved_for_id: newExpertId })
+    .eq('task_id', taskId)
   if (error) throw error
 }
 

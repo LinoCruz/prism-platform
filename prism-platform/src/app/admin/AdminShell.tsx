@@ -19,8 +19,8 @@ const NAV_ITEMS: { id: Panel; label: string }[] = [
   { id: 'placeholder2', label: 'Placeholder 2'       },
 ]
 
-const BTN_BASE   = 'border-white/20 text-white/50 hover:bg-orange-500/10 hover:text-orange-300 hover:border-orange-400/30'
-const BTN_ACTIVE = 'bg-orange-500/20 border-orange-400/60 text-orange-300'
+const BTN_BASE   = 'bg-white/8 border-white/15 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/25'
+const BTN_ACTIVE = 'bg-orange-500/25 border-orange-400/60 text-orange-200'
 
 export function AdminShell({
   name,
@@ -43,7 +43,7 @@ export function AdminShell({
           <button
             key={item.id}
             onClick={() => setActive(item.id)}
-            className={`rounded-full border px-3 py-2 text-sm font-medium text-left transition-all ${
+            className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-all ${
               active === item.id ? BTN_ACTIVE : BTN_BASE
             }`}
           >

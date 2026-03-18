@@ -1,21 +1,22 @@
 'use client'
 
-import { useState, useCallback, useEffect, useTransition } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { fetchTasksPage, fetchTaskDetails } from './actions'
+import { fetchTasksPage, fetchTaskDetails, fetchActiveTrainers, submitDisclaimTask, submitReassignTask } from './actions'
 import type { AdminTask, TaskStatusFilter } from '@/services/admin'
 
 const PAGE_SIZE = 20
 
-const ALL_STATUSES = ['available', 'reserved', 'claimed', 'in_review', 'rework', 'signed_off'] as const
+const ALL_STATUSES = ['available', 'reserved', 'in_progress', 'claimed', 'in_review', 'rework', 'signed_off'] as const
 
 const STATUS_BADGE: Record<string, string> = {
-  available: 'bg-green-500/20 text-green-300 border-green-500/30',
-  reserved:  'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  claimed:   'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  in_review: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  rework:    'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-  signed_off:'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  available:   'bg-green-500/20 text-green-300 border-green-500/30',
+  reserved:    'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  in_progress: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  claimed:     'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  in_review:   'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  rework:      'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  signed_off:  'bg-slate-500/20 text-slate-300 border-slate-500/30',
 }
 
 type TaskDetails = Awaited<ReturnType<typeof fetchTaskDetails>>
@@ -43,18 +44,111 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Task Detail Panel ────────────────────────────────────────────────────────
 
+type Trainer = { user_id: string; display_name: string; email: string; role: string }
+
+function AdminActionsSection({ taskId, status, onActionDone }: { taskId: string; status: string; onActionDone: () => void }) {
+  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [selectedExpert, setSelectedExpert] = useState('')
+  const [loadingTrainers, setLoadingTrainers] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const canAct = ['reserved', 'in_progress', 'claimed'].includes(status)
+
+  useEffect(() => {
+    if (!canAct) return
+    setLoadingTrainers(true)
+    fetchActiveTrainers()
+      .then(setTrainers)
+      .catch(() => toast.error('Failed to load trainers.'))
+      .finally(() => setLoadingTrainers(false))
+  }, [canAct])
+
+  if (!canAct) return null
+
+  async function handleDisclaim() {
+    setBusy(true)
+    const result = await submitDisclaimTask(taskId)
+    setBusy(false)
+    if (result.error) { toast.error(result.error); return }
+    toast.success('Task disclaimed and made available.')
+    onActionDone()
+  }
+
+  async function handleReassign() {
+    if (!selectedExpert) { toast.error('Select an expert first.'); return }
+    setBusy(true)
+    const result = await submitReassignTask(taskId, selectedExpert)
+    setBusy(false)
+    if (result.error) { toast.error(result.error); return }
+    toast.success('Task reassigned.')
+    onActionDone()
+  }
+
+  return (
+    <section>
+      <h4 className="text-xs uppercase tracking-widest text-muted font-medium mb-3">Admin Actions</h4>
+      <div className="rounded-xl border border-border/50 bg-surface/30 p-4 flex flex-col gap-4">
+        {/* Disclaim */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-primary font-medium">Disclaim Task</p>
+            <p className="text-xs text-muted mt-0.5">Remove from current trainer and make available to anyone.</p>
+          </div>
+          <button
+            disabled={busy}
+            onClick={handleDisclaim}
+            className="shrink-0 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Disclaim
+          </button>
+        </div>
+
+        {/* Reassign */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-primary font-medium">Reassign to Expert</p>
+          <p className="text-xs text-muted">Remove from current trainer and reserve for a different expert.</p>
+          <div className="flex gap-2 mt-1">
+            <select
+              value={selectedExpert}
+              onChange={e => setSelectedExpert(e.target.value)}
+              disabled={loadingTrainers || busy}
+              className="flex-1 rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-primary outline-none focus:border-accent disabled:opacity-50"
+            >
+              <option value="">{loadingTrainers ? 'Loading…' : 'Select expert…'}</option>
+              {trainers.map(t => (
+                <option key={t.user_id} value={t.user_id}>
+                  {t.display_name || t.email} ({t.role})
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={busy || !selectedExpert}
+              onClick={handleReassign}
+              className="shrink-0 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-medium text-accent hover:bg-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Reassign
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const [details, setDetails] = useState<TaskDetails | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  function load() {
     setLoading(true)
     setDetails(null)
     fetchTaskDetails(taskId)
       .then(setDetails)
       .catch(e => toast.error(e instanceof Error ? e.message : 'Failed to load task details.'))
       .finally(() => setLoading(false))
-  }, [taskId])
+  }
+
+  useEffect(() => { load() }, [taskId])
 
   return (
     <div className="mt-4 rounded-2xl border border-accent/30 bg-surface/30 p-6">
@@ -156,6 +250,13 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
               </div>
             )}
           </section>
+
+          {/* Admin Actions */}
+          <AdminActionsSection
+            taskId={details.task.task_id}
+            status={details.task.status}
+            onActionDone={() => { onClose(); load() }}
+          />
 
           {/* Review History */}
           <section>

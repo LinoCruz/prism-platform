@@ -12,6 +12,8 @@ import {
   unassignTasks,
   autoDistributeTasks,
   getAdminTaskDetails,
+  adminDisclaimTask,
+  adminReassignTask,
   type UserStatus,
   type TaskStatusFilter,
 } from '@/services/admin'
@@ -170,6 +172,26 @@ export async function submitTaskAssignment(formData: FormData) {
 
   revalidatePath('/admin')
   return result
+}
+
+export async function submitDisclaimTask(taskId: string): Promise<{ error?: string }> {
+  try {
+    await adminDisclaimTask(taskId)
+    revalidatePath('/admin')
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to disclaim task' }
+  }
+}
+
+export async function submitReassignTask(taskId: string, newExpertId: string): Promise<{ error?: string }> {
+  try {
+    await adminReassignTask(taskId, newExpertId)
+    revalidatePath('/admin')
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to reassign task' }
+  }
 }
 
 export async function submitTaskUnassignment(formData: FormData) {

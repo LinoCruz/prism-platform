@@ -60,6 +60,9 @@ config/master.key
 # vercel
 .vercel
 
+# claude
+.claude
+
 # supabase
 supabase/.temp/
 supabase/.branches/
