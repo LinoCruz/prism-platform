@@ -24,7 +24,7 @@ export default async function TasksPage() {
       {/* Header */}
       <Navbar />
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-4">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-4">
         <div className="mb-10">
           <h1 className="text-3xl font-semibold tracking-tight">Available Tasks</h1>
           <p className="mt-2 text-sm text-secondary">

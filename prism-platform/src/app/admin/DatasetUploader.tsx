@@ -6,6 +6,7 @@ import { submitDataset } from './actions'
 
 export function DatasetUploader() {
   const [fileName, setFileName] = useState<string | null>(null)
+  const [batchId, setBatchId] = useState('')
   const [isPending, startTransition] = useTransition()
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -19,11 +20,17 @@ export function DatasetUploader() {
       return
     }
 
+    if (!batchId.trim()) {
+      toast.error('Please enter a Batch ID.')
+      return
+    }
+
     startTransition(async () => {
       try {
         await submitDataset(formData)
         toast.success('Dataset uploaded successfully.')
         setFileName(null)
+        setBatchId('')
         form.reset()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to upload dataset.')
@@ -43,6 +50,21 @@ export function DatasetUploader() {
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label htmlFor="batchId" className="text-xs text-secondary mb-1.5 block">Batch ID</label>
+            <input
+              id="batchId"
+              name="batchId"
+              type="text"
+              value={batchId}
+              onChange={e => setBatchId(e.target.value)}
+              placeholder="e.g. batch-2026-03"
+              disabled={isPending}
+              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-accent disabled:opacity-50"
+            />
+            <p className="text-xs text-muted/60 mt-1">All tasks in this upload will be tagged with this batch ID.</p>
+          </div>
+
           <div className="relative group">
             <label
               htmlFor="dataset"
@@ -88,7 +110,7 @@ export function DatasetUploader() {
 
           <button
             type="submit"
-            disabled={isPending || !fileName}
+            disabled={isPending || !fileName || !batchId.trim()}
             className="w-full rounded-xl bg-surface-hover border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent/10 hover:border-accent/50 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending && (

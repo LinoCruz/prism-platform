@@ -2,10 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function getAvailableTasks() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data, error } = await supabase
     .from('tasks')
     .select('*, task_versions!task_versions_task_id_fkey(*)')
-    .eq('status', 'available')
+    .eq('status', 'reserved')
+    .eq('reserved_for_id', user.id)
     .order('created_at', { ascending: false })
   if (error) throw error
   return data

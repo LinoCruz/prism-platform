@@ -24,7 +24,7 @@ export default function RootLayout({
         className={`${outfit.variable} antialiased bg-background text-foreground`}
       >
         {children}
-        <footer className="py-4 border-t border-border/10 text-center text-xs text-muted">
+        <footer className="py-4 border-t border-border/10 text-center text-xs text-white bg-[#2835A9]">
           Powered by micro1 &mdash; &copy; 2026
         </footer>
         <Toaster theme="dark" position="bottom-right" richColors />

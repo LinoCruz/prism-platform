@@ -772,6 +772,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          batch_id: string | null
           created_at: string
           current_version_id: string | null
           external_id: string | null
@@ -785,6 +786,7 @@ export type Database = {
           task_id: string
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           current_version_id?: string | null
           external_id?: string | null
@@ -798,6 +800,7 @@ export type Database = {
           task_id?: string
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           current_version_id?: string | null
           external_id?: string | null

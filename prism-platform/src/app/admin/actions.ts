@@ -8,6 +8,10 @@ import {
   getTasksPaginated,
   getActiveTrainers,
   assignTasksToExpert,
+  assignTasksToMultipleExperts,
+  unassignTasks,
+  autoDistributeTasks,
+  getAdminTaskDetails,
   type UserStatus,
   type TaskStatusFilter,
 } from '@/services/admin'
@@ -78,7 +82,9 @@ export async function submitRoleChange(formData: FormData) {
 
 export async function submitDataset(formData: FormData) {
   const file = formData.get('dataset') as File
+  const batchId = (formData.get('batchId') as string)?.trim()
   if (!file) return
+  if (!batchId) throw new Error('Batch ID is required')
 
   const text = await file.text()
   const isCSV = file.name.toLowerCase().endsWith('.csv')
@@ -102,7 +108,7 @@ export async function submitDataset(formData: FormData) {
 
   if (formatted.length === 0) throw new Error('No valid tasks found in dataset')
 
-  await uploadTaskDataset(formatted)
+  await uploadTaskDataset(formatted, batchId)
   revalidatePath('/admin')
 }
 
@@ -113,33 +119,64 @@ export async function fetchTasksPage({
   pageSize,
   search,
   statusFilter,
+  questionSearch,
 }: {
   page: number
   pageSize: number
   search: string
   statusFilter: TaskStatusFilter
+  questionSearch?: string
 }) {
-  return getTasksPaginated({ page, pageSize, search, statusFilter })
+  return getTasksPaginated({ page, pageSize, search, statusFilter, questionSearch })
+}
+
+export async function fetchTaskDetails(taskId: string) {
+  return getAdminTaskDetails(taskId)
 }
 
 export async function fetchActiveTrainers() {
   return getActiveTrainers()
 }
 
+export async function submitAutoDistribute() {
+  const result = await autoDistributeTasks()
+  revalidatePath('/admin')
+  return result
+}
+
 export async function submitTaskAssignment(formData: FormData) {
-  const expertId = formData.get('expertId') as string
+  const expertIdsStr = (formData.get('expertIds') as string) ?? ''
+  const expertIds = expertIdsStr.split(',').filter(Boolean)
   const count = parseInt(formData.get('count') as string) || 0
   const taskIdsStr = (formData.get('taskIds') as string) ?? ''
   const taskIds = taskIdsStr.split(',').filter(Boolean)
+  const weightsStr = (formData.get('weights') as string) ?? ''
+  const weights = weightsStr ? (JSON.parse(weightsStr) as Record<string, number>) : undefined
 
-  if (!expertId) throw new Error('Expert ID required')
+  if (expertIds.length === 0) throw new Error('At least one expert required')
 
-  const result = await assignTasksToExpert({
-    expertId,
-    count: count > 0 ? count : undefined,
-    taskIds: taskIds.length > 0 ? taskIds : undefined,
-  })
+  const result = expertIds.length === 1 && !weights
+    ? await assignTasksToExpert({
+        expertId: expertIds[0],
+        count: count > 0 ? count : undefined,
+        taskIds: taskIds.length > 0 ? taskIds : undefined,
+      })
+    : await assignTasksToMultipleExperts({
+        expertIds,
+        count: count > 0 ? count : undefined,
+        taskIds: taskIds.length > 0 ? taskIds : undefined,
+        weights,
+      })
 
+  revalidatePath('/admin')
+  return result
+}
+
+export async function submitTaskUnassignment(formData: FormData) {
+  const taskIdsStr = (formData.get('taskIds') as string) ?? ''
+  const taskIds = taskIdsStr.split(',').filter(Boolean)
+  if (taskIds.length === 0) throw new Error('No task IDs provided')
+  const result = await unassignTasks(taskIds)
   revalidatePath('/admin')
   return result
 }

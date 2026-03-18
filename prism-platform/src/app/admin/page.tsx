@@ -31,8 +31,8 @@ export default async function AdminDashboard() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-7xl px-6 py-20">
-        <div className="mb-10">
+      <main className="relative z-10 mx-auto max-w-[1600px] px-4 py-6">
+        <div className="mb-6">
           <h1 className="text-4xl font-semibold tracking-tight">Admin Dashboard</h1>
           <p className="mt-2 text-secondary">Manage personnel roles and task datasets.</p>
         </div>
