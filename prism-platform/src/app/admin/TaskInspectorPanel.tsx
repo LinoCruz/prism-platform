@@ -350,18 +350,28 @@ export function TaskInspectorPanel() {
   const [page, setPage]                 = useState(0)
   const [idSearch, setIdSearch]         = useState('')
   const [questionSearch, setQuestionSearch] = useState('')
+  const [taskIdSearch, setTaskIdSearch] = useState('')
+  const [attemptIdSearch, setAttemptIdSearch] = useState('')
+  const [expertEmailSearch, setExpertEmailSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter | 'all'>('all')
-  const [appliedId, setAppliedId]       = useState('')
-  const [appliedQuestion, setAppliedQuestion] = useState('')
-  const [appliedStatus, setAppliedStatus]   = useState<TaskStatusFilter>('all')
+  const [applied, setApplied] = useState({ id: '', question: '', taskId: '', attemptId: '', expertEmail: '', status: 'all' as TaskStatusFilter })
   const [isLoading, setIsLoading]       = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [hasSearched, setHasSearched]   = useState(false)
 
-  const loadTasks = useCallback(async (p: number, id: string, question: string, status: TaskStatusFilter) => {
+  const loadTasks = useCallback(async (p: number, params: typeof applied) => {
     setIsLoading(true)
     try {
-      const result = await fetchTasksPage({ page: p, pageSize: PAGE_SIZE, search: id, statusFilter: status, questionSearch: question })
+      const result = await fetchTasksPage({
+        page: p,
+        pageSize: PAGE_SIZE,
+        search: params.id,
+        statusFilter: params.status,
+        questionSearch: params.question,
+        taskIdSearch: params.taskId,
+        attemptIdSearch: params.attemptId,
+        expertEmailSearch: params.expertEmail,
+      })
       setTasks(result.tasks)
       setTotal(result.total)
     } catch {
@@ -372,23 +382,29 @@ export function TaskInspectorPanel() {
   }, [])
 
   function handleSearch() {
-    const status = statusFilter as TaskStatusFilter
+    const params = {
+      id: idSearch,
+      question: questionSearch,
+      taskId: taskIdSearch,
+      attemptId: attemptIdSearch,
+      expertEmail: expertEmailSearch,
+      status: statusFilter as TaskStatusFilter,
+    }
     setPage(0)
     setSelectedTaskId(null)
-    setAppliedId(idSearch)
-    setAppliedQuestion(questionSearch)
-    setAppliedStatus(status)
+    setApplied(params)
     setHasSearched(true)
-    loadTasks(0, idSearch, questionSearch, status)
+    loadTasks(0, params)
   }
 
   function handleClear() {
     setIdSearch('')
     setQuestionSearch('')
+    setTaskIdSearch('')
+    setAttemptIdSearch('')
+    setExpertEmailSearch('')
     setStatusFilter('all')
-    setAppliedId('')
-    setAppliedQuestion('')
-    setAppliedStatus('all')
+    setApplied({ id: '', question: '', taskId: '', attemptId: '', expertEmail: '', status: 'all' })
     setPage(0)
     setSelectedTaskId(null)
     setTasks([])
@@ -399,7 +415,7 @@ export function TaskInspectorPanel() {
   function handlePageChange(newPage: number) {
     setPage(newPage)
     setSelectedTaskId(null)
-    loadTasks(newPage, appliedId, appliedQuestion, appliedStatus)
+    loadTasks(newPage, applied)
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -455,6 +471,47 @@ export function TaskInspectorPanel() {
                 <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Internal Task ID */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-secondary">Internal Task ID</label>
+            <input
+              type="text"
+              value={taskIdSearch}
+              onChange={e => setTaskIdSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="UUID or partial…"
+              className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-primary outline-none focus:border-accent placeholder:text-muted font-mono"
+            />
+          </div>
+
+          {/* Attempt ID */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-secondary">Attempt ID</label>
+            <input
+              type="text"
+              value={attemptIdSearch}
+              onChange={e => setAttemptIdSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="UUID or partial…"
+              className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-primary outline-none focus:border-accent placeholder:text-muted font-mono"
+            />
+          </div>
+
+          {/* Expert Email */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-secondary">Expert Email</label>
+            <input
+              type="text"
+              value={expertEmailSearch}
+              onChange={e => setExpertEmailSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="micro1 email…"
+              className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-primary outline-none focus:border-accent placeholder:text-muted"
+            />
           </div>
         </div>
 
