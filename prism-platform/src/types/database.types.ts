@@ -215,6 +215,7 @@ export type Database = {
           target_role: Database["public"]["Enums"]["user_role"]
           display_order: number
           published: boolean
+          media: Json
           created_by: string | null
           created_at: string
           updated_at: string
@@ -226,6 +227,7 @@ export type Database = {
           target_role: Database["public"]["Enums"]["user_role"]
           display_order?: number
           published?: boolean
+          media?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -237,6 +239,7 @@ export type Database = {
           target_role?: Database["public"]["Enums"]["user_role"]
           display_order?: number
           published?: boolean
+          media?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string

@@ -4,19 +4,20 @@ import { useState } from 'react'
 import { PersonnelRosterPanel, type RosterUser } from './PersonnelRosterPanel'
 import { DatasetUploader } from './DatasetUploader'
 import { InstructionsPanel } from './InstructionsPanel'
+import { CoursesPanel, type CourseWithRequirements } from './CoursesPanel'
 import { PipelineManagementPanel } from './PipelineManagementPanel'
 import { TaskInspectorPanel } from './TaskInspectorPanel'
 import type { Instruction } from '@/services/instructions'
 
-type Panel = 'home' | 'roster' | 'dataset' | 'instructions' | 'pipeline' | 'tasks' | 'placeholder2'
+type Panel = 'home' | 'roster' | 'dataset' | 'instructions' | 'courses' | 'pipeline' | 'tasks'
 
 const NAV_ITEMS: { id: Panel; label: string }[] = [
   { id: 'roster',       label: 'Personnel Roster'    },
   { id: 'dataset',      label: 'Dataset Deployment'  },
   { id: 'instructions', label: 'Instructions'         },
+  { id: 'courses',      label: 'Courses'              },
   { id: 'pipeline',     label: 'Pipeline Management' },
   { id: 'tasks',        label: 'Task Management'     },
-  { id: 'placeholder2', label: 'Placeholder 2'       },
 ]
 
 const BTN_BASE   = 'bg-white/8 border-white/15 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/25'
@@ -27,11 +28,13 @@ export function AdminShell({
   roster,
   currentUserId,
   instructions,
+  courses,
 }: {
   name: string
   roster: RosterUser[]
   currentUserId: string
   instructions: Instruction[]
+  courses: CourseWithRequirements[]
 }) {
   const [active, setActive] = useState<Panel>('home')
 
@@ -69,16 +72,11 @@ export function AdminShell({
 
         {active === 'instructions' && <InstructionsPanel instructions={instructions} />}
 
+        {active === 'courses' && <CoursesPanel courses={courses} />}
+
         {active === 'pipeline' && <PipelineManagementPanel />}
 
         {active === 'tasks' && <TaskInspectorPanel />}
-
-        {active === 'placeholder2' && (
-          <div className="flex flex-col justify-center h-full py-16">
-            <p className="text-xl font-medium text-muted">Coming soon.</p>
-            <p className="mt-2 text-sm text-muted/60">This section is not yet implemented.</p>
-          </div>
-        )}
       </div>
     </div>
   )

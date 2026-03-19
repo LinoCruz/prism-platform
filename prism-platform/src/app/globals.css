@@ -190,6 +190,77 @@ body {
   mix-blend-mode: overlay;
 }
 
+/* ─── Rich text editor & content rendering ─────── */
+
+/* Editor placeholder */
+.prose-editor:empty::before,
+.prose-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: rgba(230, 239, 255, 0.2);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Shared prose styles used in editor + read view */
+.rich-content h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 1.1em 0 0.45em;
+  color: rgba(230, 239, 255, 0.9);
+}
+.rich-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  color: rgba(230, 239, 255, 0.85);
+}
+.rich-content p {
+  margin: 0.45em 0;
+  line-height: 1.7;
+}
+.rich-content ul {
+  list-style: disc;
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+.rich-content ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+.rich-content li {
+  margin: 0.2em 0;
+  line-height: 1.6;
+}
+.rich-content strong {
+  font-weight: 700;
+  color: rgba(230, 239, 255, 0.95);
+}
+.rich-content em {
+  font-style: italic;
+}
+.rich-content u {
+  text-decoration: underline;
+}
+.rich-content blockquote {
+  border-left: 3px solid rgba(249, 115, 22, 0.5);
+  padding-left: 1em;
+  margin: 0.6em 0;
+  color: rgba(230, 239, 255, 0.55);
+  font-style: italic;
+}
+.rich-content img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 0.6em 0;
+  display: block;
+}
+.rich-content .ProseMirror-selectednode {
+  outline: 2px solid rgba(249, 115, 22, 0.7);
+  outline-offset: 2px;
+}
+
 /* Progress bar shimmer */
 .progress-shimmer {
   background: linear-gradient(

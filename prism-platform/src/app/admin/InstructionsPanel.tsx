@@ -8,7 +8,9 @@ import {
   submitDeleteInstruction,
   submitTogglePublished,
 } from './actions'
-import type { Instruction } from '@/services/instructions'
+import type { Instruction, MediaItem } from '@/services/instructions'
+import { MediaUploader } from '@/components/MediaUploader'
+import { RichTextEditor } from '@/components/RichTextEditor'
 
 const ROLES = ['trainee', 'trainer', 'reviewer', 'auditor'] as const
 type TargetRole = typeof ROLES[number]
@@ -25,6 +27,7 @@ type EditState = { mode: 'create' } | { mode: 'edit'; doc: Instruction } | null
 export function InstructionsPanel({ instructions }: { instructions: Instruction[] }) {
   const [editState, setEditState] = useState<EditState>(null)
   const [filterRole, setFilterRole] = useState<TargetRole | 'all'>('all')
+  const [previewDoc, setPreviewDoc] = useState<Instruction | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const visible = filterRole === 'all'
@@ -137,6 +140,12 @@ export function InstructionsPanel({ instructions }: { instructions: Instruction[
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
+                    onClick={() => setPreviewDoc(doc)}
+                    className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/60 hover:text-white/90 hover:border-white/40 transition-all"
+                  >
+                    Preview
+                  </button>
+                  <button
                     onClick={() => handleTogglePublish(doc.instruction_id, doc.published)}
                     disabled={isPending}
                     className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/60 hover:text-white/90 hover:border-white/40 transition-all disabled:opacity-40"
@@ -162,6 +171,66 @@ export function InstructionsPanel({ instructions }: { instructions: Instruction[
           ))}
         </div>
       )}
+
+      {/* Preview Modal */}
+      {previewDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-surface border border-white/12 p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPreviewDoc(null)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/50 hover:text-white hover:bg-white/15 transition-all text-lg"
+            >
+              ×
+            </button>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs rounded-full border border-white/15 px-2 py-0.5 text-white/50">
+                {ROLE_LABELS[previewDoc.target_role as TargetRole] ?? previewDoc.target_role}
+              </span>
+              <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+                previewDoc.published
+                  ? 'bg-green-500/15 text-green-400 border border-green-400/30'
+                  : 'bg-white/5 text-white/40 border border-white/10'
+              }`}>
+                {previewDoc.published ? 'Published' : 'Draft'}
+              </span>
+            </div>
+            <h2 className="text-xl font-semibold mb-6 mt-2">{previewDoc.title}</h2>
+            <div
+              className="text-secondary text-sm leading-relaxed rich-content"
+              dangerouslySetInnerHTML={
+                previewDoc.content.trimStart().startsWith('<')
+                  ? { __html: previewDoc.content }
+                  : undefined
+              }
+            >
+              {previewDoc.content.trimStart().startsWith('<') ? undefined : previewDoc.content}
+            </div>
+            {Array.isArray(previewDoc.media) && (previewDoc.media as MediaItem[]).length > 0 && (
+              <div className="mt-6 flex flex-col gap-3">
+                <p className="text-xs font-medium uppercase tracking-widest text-secondary">Attachments</p>
+                <div className="flex flex-wrap gap-3">
+                  {(previewDoc.media as MediaItem[]).map((item) => (
+                    <div key={item.url} className="rounded-xl overflow-hidden border border-white/10">
+                      {item.type === 'video' ? (
+                        <video src={item.url} controls className="max-w-full max-h-52 rounded-xl" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.url} alt={item.name} className="max-w-full max-h-52 object-contain rounded-xl" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -177,9 +246,14 @@ function InstructionForm({
   onCancel: () => void
   isPending: boolean
 }) {
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(
+    Array.isArray(initial?.media) ? (initial.media as MediaItem[]) : []
+  )
+  const [content, setContent] = useState(initial?.content ?? '')
+
   return (
     <form
-      action={onSubmit}
+      action={(fd) => { fd.set('media', JSON.stringify(mediaItems)); fd.set('content', content); onSubmit(fd) }}
       className="rounded-2xl border border-orange-400/20 bg-orange-500/5 p-6 flex flex-col gap-4"
     >
       {initial && (
@@ -225,14 +299,17 @@ function InstructionForm({
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-secondary font-medium">Content</label>
-        <textarea
-          name="content"
-          defaultValue={initial?.content ?? ''}
-          required
-          rows={10}
-          placeholder="Write your instructions here. Markdown-style formatting is preserved."
-          className="rounded-lg bg-white/5 border border-white/15 px-3 py-2 text-sm font-mono focus:outline-none focus:border-orange-400/60 resize-y placeholder:text-white/20"
+        <RichTextEditor
+          value={content}
+          onChange={setContent}
+          disabled={isPending}
+          placeholder="Write your instructions here…"
         />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-secondary font-medium">Media attachments</label>
+        <MediaUploader items={mediaItems} onChange={setMediaItems} disabled={isPending} />
       </div>
 
       <div className="flex gap-3 justify-end">

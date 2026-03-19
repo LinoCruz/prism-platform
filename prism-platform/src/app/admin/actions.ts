@@ -18,6 +18,7 @@ import {
   type TaskStatusFilter,
 } from '@/services/admin'
 import { createInstruction, updateInstruction, deleteInstruction } from '@/services/instructions'
+import { createCourse, updateCourse, deleteCourse, addTrainingRequirement, removeTrainingRequirement, createModule, updateModule, deleteModule } from '@/services/training'
 import type { Database } from '@/types/database.types'
 
 type Role = Database['public']['Enums']['user_role']
@@ -216,8 +217,10 @@ export async function submitCreateInstruction(formData: FormData) {
   const content = formData.get('content') as string
   const target_role = formData.get('target_role') as Role
   const display_order = parseInt(formData.get('display_order') as string) || 0
+  const mediaRaw = formData.get('media') as string | null
+  const media = mediaRaw ? JSON.parse(mediaRaw) : []
   if (!title || !content || !target_role) return
-  await createInstruction({ title, content, target_role, display_order })
+  await createInstruction({ title, content, target_role, display_order, media })
   revalidatePath('/admin')
   revalidatePath('/instructions')
 }
@@ -229,8 +232,10 @@ export async function submitUpdateInstruction(formData: FormData) {
   const target_role = formData.get('target_role') as Role
   const display_order = parseInt(formData.get('display_order') as string) || 0
   const published = formData.get('published') === 'true'
+  const mediaRaw = formData.get('media') as string | null
+  const media = mediaRaw ? JSON.parse(mediaRaw) : undefined
   if (!instructionId) return
-  await updateInstruction(instructionId, { title, content, target_role, display_order, published })
+  await updateInstruction(instructionId, { title, content, target_role, display_order, published, ...(media !== undefined && { media }) })
   revalidatePath('/admin')
   revalidatePath('/instructions')
 }
@@ -239,6 +244,84 @@ export async function submitDeleteInstruction(formData: FormData) {
   const instructionId = formData.get('instructionId') as string
   if (!instructionId) return
   await deleteInstruction(instructionId)
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+// ─── Courses ─────────────────────────────────────────────────────────────────
+
+export async function submitCreateCourse(formData: FormData) {
+  const title = formData.get('title') as string
+  const description = (formData.get('description') as string) || undefined
+  if (!title) return
+  await createCourse({ title, description })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitUpdateCourse(formData: FormData) {
+  const courseId = formData.get('courseId') as string
+  const title = formData.get('title') as string
+  const description = (formData.get('description') as string) || undefined
+  if (!courseId) return
+  await updateCourse(courseId, { title, description })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitDeleteCourse(formData: FormData) {
+  const courseId = formData.get('courseId') as string
+  if (!courseId) return
+  await deleteCourse(courseId)
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitAddRequirement(formData: FormData) {
+  const courseId = formData.get('courseId') as string
+  const role_required = formData.get('role_required') as Role
+  const mandatory = formData.get('mandatory') === 'true'
+  if (!courseId || !role_required) return
+  await addTrainingRequirement({ course_id: courseId, role_required, mandatory })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitRemoveRequirement(formData: FormData) {
+  const requirementId = formData.get('requirementId') as string
+  if (!requirementId) return
+  await removeTrainingRequirement(requirementId)
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+// ─── Course Modules ───────────────────────────────────────────────────────────
+
+export async function submitCreateModule(formData: FormData) {
+  const course_id = formData.get('courseId') as string
+  const title = formData.get('title') as string
+  const video_url = (formData.get('video_url') as string) || undefined
+  const module_order = parseInt(formData.get('module_order') as string) || 0
+  if (!course_id || !title) return
+  await createModule({ course_id, title, video_url, module_order })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitUpdateModule(formData: FormData) {
+  const moduleId = formData.get('moduleId') as string
+  const title = formData.get('title') as string
+  const video_url = (formData.get('video_url') as string) || null
+  if (!moduleId) return
+  await updateModule(moduleId, { title, video_url })
+  revalidatePath('/admin')
+  revalidatePath('/instructions')
+}
+
+export async function submitDeleteModule(formData: FormData) {
+  const moduleId = formData.get('moduleId') as string
+  if (!moduleId) return
+  await deleteModule(moduleId)
   revalidatePath('/admin')
   revalidatePath('/instructions')
 }
