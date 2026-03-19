@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { claimTask as claimTaskService, submitTask as submitTaskService, startTask, cancelTask, finishTask } from '@/services/tasks'
 import { createClient } from '@/lib/supabase/server'
 
@@ -35,6 +36,8 @@ export async function updateUserProfile(formData: FormData): Promise<{ error?: s
 export async function claimTask(formData: FormData) {
   const taskId = formData.get('taskId') as string
   await claimTaskService(taskId)
+  revalidatePath('/tasks')
+  revalidatePath('/my-tasks')
   redirect('/my-tasks')
 }
 
@@ -42,12 +45,16 @@ export async function submitTask(formData: FormData) {
   const taskId = formData.get('taskId') as string
   const versionId = formData.get('versionId') as string
   await submitTaskService(taskId, versionId)
+  revalidatePath('/tasks')
+  revalidatePath('/my-tasks')
   redirect('/my-tasks')
 }
 
 export async function startTaskAction(taskId: string): Promise<{ error?: string }> {
   try {
     await startTask(taskId)
+    revalidatePath('/tasks')
+    revalidatePath('/my-tasks')
     return {}
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to start task' }
@@ -57,6 +64,8 @@ export async function startTaskAction(taskId: string): Promise<{ error?: string 
 export async function cancelTaskAction(taskId: string): Promise<{ error?: string }> {
   try {
     await cancelTask(taskId)
+    revalidatePath('/tasks')
+    revalidatePath('/my-tasks')
     return {}
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to cancel task' }
@@ -79,6 +88,8 @@ export interface TaskQAData {
 export async function finishTaskAction(taskId: string, qaData: TaskQAData): Promise<{ error?: string }> {
   try {
     await finishTask(taskId, qaData)
+    revalidatePath('/tasks')
+    revalidatePath('/my-tasks')
     return {}
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to submit task' }
