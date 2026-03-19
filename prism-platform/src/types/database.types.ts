@@ -830,6 +830,35 @@ export type Database = {
           },
         ]
       }
+      task_temporal_values: {
+        Row: {
+          id: string
+          task_id: string
+          value: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          value: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          value?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_temporal_values_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
       training_requirements: {
         Row: {
           course_id: string
