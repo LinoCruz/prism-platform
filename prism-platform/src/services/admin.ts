@@ -29,15 +29,43 @@ export async function getTasksPaginated({
   search = '',
   statusFilter = 'all',
   questionSearch = '',
+  taskIdSearch = '',
+  attemptIdSearch = '',
+  expertEmailSearch = '',
 }: {
   page?: number
   pageSize?: number
   search?: string
   statusFilter?: TaskStatusFilter
   questionSearch?: string
+  taskIdSearch?: string
+  attemptIdSearch?: string
+  expertEmailSearch?: string
 }) {
   await checkAdmin()
   const supabase = await createClient()
+
+  // Resolve attempt_id → task_ids before building main query
+  let attemptTaskIds: string[] | null = null
+  if (attemptIdSearch) {
+    const { data: matchingAttempts } = await supabase
+      .from('task_attempts')
+      .select('task_id')
+      .filter('attempt_id::text', 'ilike', `%${attemptIdSearch}%`)
+    attemptTaskIds = [...new Set((matchingAttempts ?? []).map(a => a.task_id))]
+    if (attemptTaskIds.length === 0) return { tasks: [], total: 0 }
+  }
+
+  // Resolve expert email → user_ids
+  let expertUserIds: string[] | null = null
+  if (expertEmailSearch) {
+    const { data: matchingUsers } = await supabase
+      .from('users')
+      .select('user_id')
+      .ilike('email', `%${expertEmailSearch}%`)
+    expertUserIds = (matchingUsers ?? []).map(u => u.user_id)
+    if (expertUserIds.length === 0) return { tasks: [], total: 0 }
+  }
 
   let query = supabase
     .from('tasks')
@@ -49,6 +77,18 @@ export async function getTasksPaginated({
 
   if (questionSearch) {
     query = query.ilike('question', `%${questionSearch}%`)
+  }
+
+  if (taskIdSearch) {
+    query = query.filter('task_id::text', 'ilike', `%${taskIdSearch}%`)
+  }
+
+  if (attemptTaskIds) {
+    query = query.in('task_id', attemptTaskIds)
+  }
+
+  if (expertUserIds) {
+    query = query.in('reserved_for_id', expertUserIds)
   }
 
   if (statusFilter === 'free') {

@@ -122,14 +122,20 @@ export async function fetchTasksPage({
   search,
   statusFilter,
   questionSearch,
+  taskIdSearch,
+  attemptIdSearch,
+  expertEmailSearch,
 }: {
   page: number
   pageSize: number
   search: string
   statusFilter: TaskStatusFilter
   questionSearch?: string
+  taskIdSearch?: string
+  attemptIdSearch?: string
+  expertEmailSearch?: string
 }) {
-  return getTasksPaginated({ page, pageSize, search, statusFilter, questionSearch })
+  return getTasksPaginated({ page, pageSize, search, statusFilter, questionSearch, taskIdSearch, attemptIdSearch, expertEmailSearch })
 }
 
 export async function fetchTaskDetails(taskId: string) {

@@ -1002,6 +1002,7 @@ export type Database = {
         | "sent_for_rework"
         | "fixed"
         | "signed_off"
+        | "canceled"
       user_role: "trainee" | "trainer" | "reviewer" | "auditor" | "admin"
       version_source: "trainer" | "reviewer" | "auditor"
     }
@@ -1154,6 +1155,7 @@ export const Constants = {
         "sent_for_rework",
         "fixed",
         "signed_off",
+        "canceled",
       ],
       user_role: ["trainee", "trainer", "reviewer", "auditor", "admin"],
       version_source: ["trainer", "reviewer", "auditor"],

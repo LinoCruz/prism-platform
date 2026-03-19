@@ -34,8 +34,9 @@ export async function getMyTasks() {
 
   const { data, error } = await supabase
     .from('task_attempts')
-    .select('attempt_id, task_id, submitted_at, tasks(task_id, external_id, status, question)')
+    .select('attempt_id, task_id, claimed_at, submitted_at, tasks(task_id, external_id, status, question)')
     .eq('trainer_id', user.id)
+    .not('submitted_at', 'is', null)
     .order('claimed_at', { ascending: false })
   if (error) throw error
   return data
@@ -117,7 +118,9 @@ export async function startTask(taskId: string) {
   return data
 }
 
-// Cancel a task: removes the unsubmitted attempt and reverts status to reserved.
+// Cancel a task: deletes the unsubmitted attempt and reverts the task to reserved.
+// NOTE: Once migrations 20260319000001 and 20260319000002 are pushed to the remote DB,
+// change this to keep the attempt and set status to 'canceled' instead.
 export async function cancelTask(taskId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

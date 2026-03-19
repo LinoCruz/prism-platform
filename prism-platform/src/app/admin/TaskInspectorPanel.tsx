@@ -7,7 +7,7 @@ import type { AdminTask, TaskStatusFilter } from '@/services/admin'
 
 const PAGE_SIZE = 20
 
-const ALL_STATUSES = ['available', 'reserved', 'claimed', 'completed', 'in_review', 'sent_for_rework', 'fixed', 'signed_off'] as const
+const ALL_STATUSES = ['available', 'reserved', 'claimed', 'completed', 'in_review', 'sent_for_rework', 'fixed', 'signed_off', 'canceled'] as const
 
 const STATUS_BADGE: Record<string, string> = {
   available:       'bg-green-500/20 text-green-300 border-green-500/30',
@@ -18,6 +18,7 @@ const STATUS_BADGE: Record<string, string> = {
   sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
   signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  canceled:        'bg-red-500/20 text-red-300 border-red-500/30',
 }
 
 type TaskDetails = Awaited<ReturnType<typeof fetchTaskDetails>>
@@ -227,8 +228,10 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                     <tr className="border-b border-border bg-surface/30 text-secondary">
                       <th className="p-2.5 font-medium">#</th>
                       <th className="p-2.5 font-medium">Trainer</th>
+                      <th className="p-2.5 font-medium">Status</th>
                       <th className="p-2.5 font-medium">Claimed At</th>
                       <th className="p-2.5 font-medium">Submitted At</th>
+                      <th className="p-2.5 font-medium">Task Time</th>
                       <th className="p-2.5 font-medium">Attempt ID</th>
                     </tr>
                   </thead>
@@ -239,9 +242,29 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                         <td className="p-2.5 text-primary">
                           {details.userMap[a.trainer_id]?.email ?? a.trainer_id.slice(0, 8) + '…'}
                         </td>
+                        <td className="p-2.5">
+                          {(() => {
+                            const s = a.submitted_at ? 'submitted' : details.task.status === 'canceled' ? 'canceled' : 'in_progress'
+                            const cls = s === 'submitted' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                              : s === 'canceled' ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            return <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${cls}`}>{s.replaceAll('_', ' ')}</span>
+                          })()}
+                        </td>
                         <td className="p-2.5 text-muted tabular-nums">{new Date(a.claimed_at).toLocaleString()}</td>
                         <td className="p-2.5 text-muted tabular-nums">
                           {a.submitted_at ? new Date(a.submitted_at).toLocaleString() : <span className="text-muted/40">—</span>}
+                        </td>
+                        <td className="p-2.5 text-muted tabular-nums">
+                          {(() => {
+                            if (!a.submitted_at) return <span className="text-muted/40">—</span>
+                            const ms = new Date(a.submitted_at).getTime() - new Date(a.claimed_at).getTime()
+                            if (ms <= 0) return <span className="text-muted/40">—</span>
+                            const totalMinutes = Math.floor(ms / 60000)
+                            const hours = Math.floor(totalMinutes / 60)
+                            const minutes = totalMinutes % 60
+                            return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+                          })()}
                         </td>
                         <td className="p-2.5 text-muted/60 font-mono">{a.attempt_id.slice(0, 8)}…</td>
                       </tr>

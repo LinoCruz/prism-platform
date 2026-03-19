@@ -9,6 +9,18 @@ const STATUS_BADGE: Record<string, string> = {
   sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
   signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  canceled:        'bg-red-500/20 text-red-300 border-red-500/30',
+}
+
+function formatTaskTime(claimedAt: string, submittedAt: string | null): string {
+  if (!submittedAt) return '—'
+  const ms = new Date(submittedAt).getTime() - new Date(claimedAt).getTime()
+  if (ms <= 0) return '—'
+  const totalMinutes = Math.floor(ms / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
 }
 
 export default async function MyTasksPage() {
@@ -43,6 +55,7 @@ export default async function MyTasksPage() {
                   <th className="px-4 py-3 font-medium">Question</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Submitted</th>
+                  <th className="px-4 py-3 font-medium">Task Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -71,6 +84,9 @@ export default async function MyTasksPage() {
                         {attempt.submitted_at
                           ? new Date(attempt.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                           : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted tabular-nums whitespace-nowrap">
+                        {formatTaskTime(attempt.claimed_at, attempt.submitted_at)}
                       </td>
                     </tr>
                   )
