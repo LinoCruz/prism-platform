@@ -7,16 +7,17 @@ import type { AdminTask, TaskStatusFilter } from '@/services/admin'
 
 const PAGE_SIZE = 20
 
-const ALL_STATUSES = ['available', 'reserved', 'in_progress', 'claimed', 'in_review', 'rework', 'signed_off'] as const
+const ALL_STATUSES = ['available', 'reserved', 'claimed', 'completed', 'in_review', 'sent_for_rework', 'fixed', 'signed_off'] as const
 
 const STATUS_BADGE: Record<string, string> = {
-  available:   'bg-green-500/20 text-green-300 border-green-500/30',
-  reserved:    'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  in_progress: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  claimed:     'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  in_review:   'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  rework:      'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-  signed_off:  'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  available:       'bg-green-500/20 text-green-300 border-green-500/30',
+  reserved:        'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  claimed:         'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  completed:       'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  in_review:       'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
 }
 
 type TaskDetails = Awaited<ReturnType<typeof fetchTaskDetails>>
@@ -37,7 +38,7 @@ function InfoCard({ label, value, mono = false }: { label: string; value: string
 function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${STATUS_BADGE[status] ?? 'bg-border/20 text-muted border-border/30'}`}>
-      {status.replace('_', ' ')}
+      {status.replaceAll('_', ' ')}
     </span>
   )
 }
@@ -52,7 +53,7 @@ function AdminActionsSection({ taskId, status, onActionDone }: { taskId: string;
   const [loadingTrainers, setLoadingTrainers] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const canAct = ['reserved', 'in_progress', 'claimed'].includes(status)
+  const canAct = ['reserved', 'claimed'].includes(status)
 
   useEffect(() => {
     if (!canAct) return
@@ -428,7 +429,7 @@ export function TaskInspectorPanel() {
               <option value="free">Free (unassigned)</option>
               <option value="assigned">Assigned</option>
               {ALL_STATUSES.map(s => (
-                <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>
               ))}
             </select>
           </div>

@@ -19,12 +19,14 @@ type DrawerTab = 'assign' | 'unassign'
 type RoleFilter = 'all' | 'trainer' | 'trainee'
 
 const STATUS_BADGE: Record<string, string> = {
-  available: 'bg-green-500/20 text-green-300 border-green-500/30',
-  reserved:  'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  claimed:   'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  in_review: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  rework:    'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-  signed_off:'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  available:       'bg-green-500/20 text-green-300 border-green-500/30',
+  reserved:        'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  claimed:         'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  completed:       'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  in_review:       'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
 }
 
 function isFree(task: AdminTask) {
@@ -32,7 +34,7 @@ function isFree(task: AdminTask) {
 }
 function statusLabel(task: AdminTask) {
   if (isFree(task)) return 'free'
-  return task.status.replace('_', ' ')
+  return task.status.replaceAll('_', ' ')
 }
 
 // ─── Icons ─────────────────────────────────────────────────────────────────

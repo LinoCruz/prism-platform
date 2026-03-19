@@ -3,10 +3,12 @@ import { Navbar } from '@/components/Navbar'
 import { PrismStripes } from '@/components/PrismStripes'
 
 const STATUS_BADGE: Record<string, string> = {
-  claimed:     'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  in_review:   'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  rework:      'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-  signed_off:  'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  claimed:         'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  completed:       'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  in_review:       'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
 }
 
 export default async function MyTasksPage() {
@@ -33,7 +35,7 @@ export default async function MyTasksPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border/50 overflow-x-auto">
+          <div className="rounded-2xl border border-border/50 overflow-x-auto bg-surface/60">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-surface/40 text-xs text-secondary uppercase tracking-wider">
@@ -62,7 +64,7 @@ export default async function MyTasksPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${badgeClass}`}>
-                          {status.replace('_', ' ')}
+                          {status.replaceAll('_', ' ')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted tabular-nums whitespace-nowrap">

@@ -54,7 +54,7 @@ export async function getTasksPaginated({
   if (statusFilter === 'free') {
     query = query.eq('status', 'available').is('reserved_for_id', null)
   } else if (statusFilter === 'assigned') {
-    query = query.or('status.eq.reserved,status.eq.in_progress,status.eq.claimed,status.eq.in_review,status.eq.rework,status.eq.signed_off')
+    query = query.or('status.eq.reserved,status.eq.claimed,status.eq.completed,status.eq.in_review,status.eq.sent_for_rework,status.eq.fixed,status.eq.signed_off')
   }
 
   const { data: tasks, error, count } = await query

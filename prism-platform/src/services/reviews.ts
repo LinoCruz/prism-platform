@@ -36,6 +36,14 @@ export async function startReview(taskId: string, versionId: string) {
     .select()
     .single()
   if (error) throw error
+
+  // Mark task as in_review once a reviewer picks it up
+  const { error: statusError } = await supabase
+    .from('tasks')
+    .update({ status: 'in_review' })
+    .eq('task_id', taskId)
+  if (statusError) throw statusError
+
   return data
 }
 
@@ -60,7 +68,7 @@ export async function completeReview(
   if (error) throw error
 
   // Update task status based on decision
-  const nextStatus = decision === 'approved' ? 'signed_off' : 'rework'
+  const nextStatus = decision === 'approved' ? 'signed_off' : 'sent_for_rework'
   const { error: statusError } = await supabase
     .from('tasks')
     .update({ status: nextStatus })

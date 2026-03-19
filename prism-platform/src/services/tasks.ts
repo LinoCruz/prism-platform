@@ -46,7 +46,7 @@ export async function getTasksForReview() {
   const { data, error } = await supabase
     .from('tasks')
     .select('*, task_versions!task_versions_task_id_fkey(*), task_attempts(*)')
-    .eq('status', 'in_review')
+    .eq('status', 'completed')
     .order('created_at', { ascending: true })
   if (error) throw error
   return data
@@ -84,7 +84,7 @@ export async function claimTask(taskId: string) {
   return data
 }
 
-// Start a task: creates the attempt and marks the task as in_progress.
+// Start a task: creates the attempt and marks the task as claimed.
 // Called immediately when the trainer clicks "Claim Task" (modal opens).
 export async function startTask(taskId: string) {
   const supabase = await createClient()
@@ -109,7 +109,7 @@ export async function startTask(taskId: string) {
 
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: 'in_progress' })
+    .update({ status: 'claimed' })
     .eq('task_id', taskId)
     .eq('reserved_for_id', user.id)
   if (statusError) throw statusError
@@ -138,7 +138,7 @@ export async function cancelTask(taskId: string) {
   if (error) throw error
 }
 
-// Finish a task: marks the attempt as submitted and moves status to claimed.
+// Finish a task: marks the attempt as submitted and moves status to completed.
 export async function finishTask(taskId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -154,7 +154,7 @@ export async function finishTask(taskId: string) {
 
   const { error } = await supabase
     .from('tasks')
-    .update({ status: 'claimed' })
+    .update({ status: 'completed' })
     .eq('task_id', taskId)
   if (error) throw error
 }
@@ -174,10 +174,20 @@ export async function submitTask(taskId: string, versionId: string) {
     .single()
   if (error) throw error
 
-  // Update task status to in_review
+  // If the task was sent for rework and is being resubmitted, mark it as fixed.
+  // Otherwise it's a first submission → completed (awaiting reviewer pick-up).
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('status')
+    .eq('task_id', taskId)
+    .single()
+  if (taskError) throw taskError
+
+  const nextStatus = task.status === 'sent_for_rework' ? 'fixed' : 'completed'
+
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: 'in_review', current_version_id: versionId })
+    .update({ status: nextStatus, current_version_id: versionId })
     .eq('task_id', taskId)
   if (statusError) throw statusError
 

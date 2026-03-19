@@ -966,11 +966,13 @@ export type Database = {
       review_decision: "approved" | "rework"
       task_status:
         | "available"
-        | "claimed"
-        | "in_review"
-        | "rework"
-        | "signed_off"
         | "reserved"
+        | "claimed"
+        | "completed"
+        | "in_review"
+        | "sent_for_rework"
+        | "fixed"
+        | "signed_off"
       user_role: "trainee" | "trainer" | "reviewer" | "auditor" | "admin"
       version_source: "trainer" | "reviewer" | "auditor"
     }
@@ -1116,11 +1118,13 @@ export const Constants = {
       review_decision: ["approved", "rework"],
       task_status: [
         "available",
-        "claimed",
-        "in_review",
-        "rework",
-        "signed_off",
         "reserved",
+        "claimed",
+        "completed",
+        "in_review",
+        "sent_for_rework",
+        "fixed",
+        "signed_off",
       ],
       user_role: ["trainee", "trainer", "reviewer", "auditor", "admin"],
       version_source: ["trainer", "reviewer", "auditor"],
