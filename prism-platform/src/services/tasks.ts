@@ -36,7 +36,7 @@ export async function getMyTasks() {
     .from('task_attempts')
     .select('attempt_id, task_id, submitted_at, tasks(task_id, external_id, status, question)')
     .eq('trainer_id', user.id)
-    .order('created_at', { ascending: false })
+    .order('claimed_at', { ascending: false })
   if (error) throw error
   return data
 }
