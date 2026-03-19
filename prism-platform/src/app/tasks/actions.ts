@@ -63,9 +63,22 @@ export async function cancelTaskAction(taskId: string): Promise<{ error?: string
   }
 }
 
-export async function finishTaskAction(taskId: string): Promise<{ error?: string }> {
+export interface TaskQAData {
+  original_question: string
+  original_answer: string
+  is_question_valid: boolean | null
+  question_invalid_reason: string | null
+  new_question: string | null
+  is_answer_valid: boolean | null
+  answer_invalid_reason: string | null
+  new_answer: string | null
+  is_temporal: boolean | null
+  temporal_values: string[]
+}
+
+export async function finishTaskAction(taskId: string, qaData: TaskQAData): Promise<{ error?: string }> {
   try {
-    await finishTask(taskId)
+    await finishTask(taskId, qaData)
     return {}
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to submit task' }

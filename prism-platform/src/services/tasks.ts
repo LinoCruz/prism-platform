@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { TaskQAData } from '@/app/tasks/actions'
 
 export async function getAvailableTasks() {
   const supabase = await createClient()
@@ -138,8 +139,8 @@ export async function cancelTask(taskId: string) {
   if (error) throw error
 }
 
-// Finish a task: marks the attempt as submitted and moves status to completed.
-export async function finishTask(taskId: string) {
+// Finish a task: marks the attempt as submitted, saves QA data, and moves status to completed.
+export async function finishTask(taskId: string, qaData: TaskQAData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -152,11 +153,29 @@ export async function finishTask(taskId: string) {
     .is('submitted_at', null)
   if (attemptError) throw attemptError
 
-  const { error } = await supabase
+  const { error: qaError } = await supabase
     .from('tasks')
-    .update({ status: 'completed' })
+    .update({
+      status: 'completed',
+      original_question: qaData.original_question || null,
+      original_answer: qaData.original_answer || null,
+      is_question_valid: qaData.is_question_valid,
+      question_invalid_reason: qaData.question_invalid_reason,
+      new_question: qaData.new_question,
+      is_answer_valid: qaData.is_answer_valid,
+      answer_invalid_reason: qaData.answer_invalid_reason,
+      new_answer: qaData.new_answer,
+      is_temporal: qaData.is_temporal,
+    })
     .eq('task_id', taskId)
-  if (error) throw error
+  if (qaError) throw qaError
+
+  if (qaData.is_temporal && qaData.temporal_values.length > 0) {
+    const { error: temporalError } = await supabase
+      .from('task_temporal_values')
+      .insert(qaData.temporal_values.map((value) => ({ task_id: taskId, value })))
+    if (temporalError) throw temporalError
+  }
 }
 
 export async function submitTask(taskId: string, versionId: string) {

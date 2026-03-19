@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { PrismStripes } from '@/components/PrismStripes'
-import { ClaimTaskButton } from './ClaimTaskButton'
+import { ClaimTaskModal } from './ClaimTaskModal'
 
 type Task = {
   task_id: string
@@ -64,7 +64,7 @@ export function TasksListClient({ initialTasks }: { initialTasks: Task[] }) {
               </div>
 
               <div className="mt-8">
-                <ClaimTaskButton
+                <ClaimTaskModal
                   taskId={task.task_id}
                   externalId={displayId}
                   onSubmitted={() => removeTask(task.task_id)}
