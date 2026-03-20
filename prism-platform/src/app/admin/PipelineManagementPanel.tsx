@@ -26,7 +26,10 @@ const STATUS_BADGE: Record<string, string> = {
   in_review:       'bg-purple-500/20 text-purple-300 border-purple-500/30',
   sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
-  signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  approved:        'bg-green-500/20 text-green-300 border-green-500/30',
+  auditing:        'bg-violet-500/20 text-violet-300 border-violet-500/30',
+  reviewer_fixing: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  signed_off:      'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
 }
 
 function isFree(task: AdminTask) {

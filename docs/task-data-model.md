@@ -40,7 +40,7 @@ One row per review cycle. Created when a reviewer picks up the task; updated whe
 | `started_at` | timestamptz | When the reviewer opened the task |
 | `completed_at` | timestamptz \| null | When the reviewer submitted their decision |
 | `decision` | enum \| null | `approved`, `rework`, or `fixed_and_approved` |
-| `score` | int \| null | Quality score |
+| `score` | int \| null | Quality score (1–5) |
 | `feedback` | text \| null | Written feedback for the trainer |
 | `version_id` | uuid FK \| null | The `task_versions` snapshot created on submit |
 
@@ -73,7 +73,7 @@ One row per audit. Created when an auditor picks up the task; updated when they 
 | `completed_at` | timestamptz \| null | When the auditor submitted their decision |
 | `decision` | enum \| null | `approved` or `needs_changes` |
 | `action` | enum \| null | `approve`, `send_back_to_reviewer`, or `fix_themselves` |
-| `score` | int \| null | Quality score |
+| `score` | int \| null | Quality score (1–5) |
 | `feedback` | text \| null | Written feedback |
 
 **Lifecycle:** `started_at` is set on pick-up → all other fields are set on submit.

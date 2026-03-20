@@ -1057,10 +1057,10 @@ export type Database = {
         | "sent_for_rework"
         | "reworking"
         | "fixed"
-        | "signed_off"
+        | "approved"
         | "auditing"
         | "reviewer_fixing"
-        | "passed_audit"
+        | "signed_off"
         | "delivered"
       user_role: "trainee" | "trainer" | "reviewer" | "auditor" | "admin"
       version_source: "trainer" | "reviewer" | "auditor"
@@ -1215,10 +1215,10 @@ export const Constants = {
         "sent_for_rework",
         "reworking",
         "fixed",
-        "signed_off",
+        "approved",
         "auditing",
         "reviewer_fixing",
-        "passed_audit",
+        "signed_off",
         "delivered",
       ],
       user_role: ["trainee", "trainer", "reviewer", "auditor", "admin"],

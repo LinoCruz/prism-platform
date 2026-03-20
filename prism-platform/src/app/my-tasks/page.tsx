@@ -8,7 +8,10 @@ const STATUS_BADGE: Record<string, string> = {
   in_review:       'bg-purple-500/20 text-purple-300 border-purple-500/30',
   sent_for_rework: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   fixed:           'bg-teal-500/20 text-teal-300 border-teal-500/30',
-  signed_off:      'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  approved:        'bg-green-500/20 text-green-300 border-green-500/30',
+  auditing:        'bg-violet-500/20 text-violet-300 border-violet-500/30',
+  reviewer_fixing: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  signed_off:      'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   canceled:        'bg-red-500/20 text-red-300 border-red-500/30',
 }
 
@@ -47,18 +50,18 @@ export default async function MyTasksPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border/50 overflow-x-auto bg-surface/60">
+          <div className="rounded-2xl border border-border overflow-x-auto bg-surface">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border bg-surface/40 text-xs text-secondary uppercase tracking-wider">
-                  <th className="px-4 py-3 font-medium">Task ID</th>
-                  <th className="px-4 py-3 font-medium">Question</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Submitted</th>
-                  <th className="px-4 py-3 font-medium">Task Time</th>
+                <tr className="border-b border-border bg-black/30 text-xs text-foreground/70 uppercase tracking-wider">
+                  <th className="px-4 py-3 font-semibold">Task ID</th>
+                  <th className="px-4 py-3 font-semibold">Question</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Submitted</th>
+                  <th className="px-4 py-3 font-semibold">Task Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-border/60">
                 {attempts.map((attempt) => {
                   const task = attempt.tasks as { task_id: string; external_id: string | null; status: string; question: string | null } | null
                   const displayId = task?.external_id ?? attempt.task_id
@@ -66,12 +69,12 @@ export default async function MyTasksPage() {
                   const badgeClass = STATUS_BADGE[status] ?? 'bg-border/20 text-muted border-border/30'
 
                   return (
-                    <tr key={attempt.attempt_id} className="hover:bg-surface-hover/30 transition-colors">
+                    <tr key={attempt.attempt_id} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-accent">{displayId}</span>
+                        <span className="font-mono text-xs text-accent bg-accent/15 px-1.5 py-0.5 rounded brightness-150">{displayId}</span>
                       </td>
                       <td className="px-4 py-3 max-w-md">
-                        <span className="text-sm text-primary line-clamp-2 leading-relaxed">
+                        <span className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">
                           {task?.question ?? '—'}
                         </span>
                       </td>
@@ -80,12 +83,12 @@ export default async function MyTasksPage() {
                           {status.replaceAll('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-foreground/70 tabular-nums whitespace-nowrap">
                         {attempt.submitted_at
                           ? new Date(attempt.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                           : '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-foreground/70 tabular-nums whitespace-nowrap">
                         {formatTaskTime(attempt.claimed_at, attempt.submitted_at)}
                       </td>
                     </tr>

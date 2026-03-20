@@ -122,8 +122,8 @@ export async function completeReview(
     .single()
   if (error) throw error
 
-  // fixed_and_approved and approved both move to signed_off; rework → sent_for_rework
-  const nextStatus = decision === 'rework' ? 'sent_for_rework' : 'signed_off'
+  // fixed_and_approved and approved both move to approved; rework → sent_for_rework
+  const nextStatus = decision === 'rework' ? 'sent_for_rework' : 'approved'
 
   // Build task update — always update status + version; also persist edits for fixed_and_approved
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,8 +231,8 @@ export async function completeAudit(
     .single()
   if (error) throw error
 
-  // approved → passed_audit; anything else → reviewer_fixing (reviewer must address audit feedback)
-  const nextStatus = action === 'approve' ? 'passed_audit' : 'reviewer_fixing'
+  // approve → signed_off; anything else → reviewer_fixing (reviewer must address audit feedback)
+  const nextStatus = action === 'approve' ? 'signed_off' : 'reviewer_fixing'
   const taskId = (data.task_reviews as { task_id: string })?.task_id
   if (taskId) {
     const { error: statusError } = await supabase

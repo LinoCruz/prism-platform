@@ -19,13 +19,13 @@ available
                           │           └─► fixed
                           │                 └─► in_review   (rework cycle repeats)
                           │
-                          └─► signed_off              (reviewer approves)
+                          └─► approved               (reviewer approves)
                                 └─► auditing
                                       ├─► reviewer_fixing   (auditor sends back to reviewer)
-                                      │     └─► signed_off  (reviewer re-submits)
+                                      │     └─► approved    (reviewer re-submits → back to audit queue)
                                       │           └─► auditing   (audit cycle repeats)
                                       │
-                                      └─► passed_audit       (auditor approves)
+                                      └─► signed_off         (auditor approves — auditors/admins only)
                                             └─► delivered    (auditor or admin — TERMINAL)
 ```
 
@@ -37,7 +37,7 @@ available
 
 ```
 available → reserved → claimed → completed → in_review
-  → signed_off → auditing → reviewer_fixing → passed_audit → delivered
+  → approved → auditing → reviewer_fixing → signed_off → delivered
 ```
 
 `delivered` is the maximum possible status and can only be set by an **auditor** or an **admin**.
@@ -56,10 +56,10 @@ available → reserved → claimed → completed → in_review
 | `sent_for_rework` | Reviewer | Reviewer rejected; trainer must redo the work |
 | `reworking` | Trainer | Trainer has claimed the rework (subsequent attempt) |
 | `fixed` | Trainer | Trainer resubmitted after rework; awaiting next review |
-| `signed_off` | Reviewer | Reviewer approved; awaiting auditor pick-up |
+| `approved` | Reviewer | Reviewer approved; awaiting auditor pick-up |
 | `auditing` | Auditor | Auditor is evaluating the reviewer's work |
 | `reviewer_fixing` | Auditor | Auditor sent the task back — reviewer must fix content or redo the review |
-| `passed_audit` | Auditor | Auditor approved the quality; awaiting delivery |
+| `signed_off` | **Auditor or Admin only** | Auditor approved the quality; awaiting delivery |
 | `delivered` | **Auditor or Admin only** | Task has been delivered — no further transitions allowed |
 
 ---
@@ -88,7 +88,7 @@ One row per trainer submission cycle. Tracks `claimed_at`, `submitted_at`, and `
 Content snapshots. Every time an expert submits their work, a new row is inserted with `data_payload` (full task content as JSONB), `source` (`trainer` or `reviewer`), `parent_version_id`, and an incrementing `version_number` per task.
 
 ### `task_reviews`
-One row per review cycle. Holds the reviewer's `decision` (`approved` or `rework`), `score`, `feedback`, and `snapshot_version_id` — a FK to the `task_versions` row created when the review was completed.
+One row per review cycle. Holds the reviewer's `decision` (`approved`, `fixed_and_approved`, or `rework`), `score`, `feedback`, and `snapshot_version_id` — a FK to the `task_versions` row created when the review was completed.
 
 ### `review_audits`
 One row per audit. Holds the auditor's `decision` (`approved` or `needs_changes`), `score`, `feedback`, and `action` (`approve`, `send_back_to_reviewer`, or `fix_themselves`).
@@ -124,7 +124,7 @@ task_attempts:   attempt 1, attempt 2 (rework 1)
 task_versions:   v1 trainer, v2 reviewer, v3 trainer, v4 reviewer, v5 reviewer (post-audit fix)
 task_reviews:    review 1 (rework), review 2 (approved), review 3 (approved, post-fix)
 review_audits:   audit 1 (needs_changes → reviewer_fixing), audit 2 (approved)
-tasks.status:    ... → passed_audit → delivered
+tasks.status:    ... → signed_off → delivered
 ```
 
 ---
@@ -133,10 +133,10 @@ tasks.status:    ... → passed_audit → delivered
 
 - `sent_for_rework` → only `reworking` (trainer re-claims).
 - `reworking` → only `fixed` (trainer submits).
-- `signed_off` → only `auditing` (auditor picks it up).
-- `auditing` → only `passed_audit` (approved) or `reviewer_fixing` (auditor sends back).
-- `reviewer_fixing` → only `signed_off` (reviewer re-submits after addressing audit feedback).
-- `passed_audit` → only `delivered` (auditor or admin — no other role may set this).
+- `approved` → only `auditing` (auditor picks it up).
+- `auditing` → only `signed_off` (approved) or `reviewer_fixing` (auditor sends back).
+- `reviewer_fixing` → only `approved` (reviewer re-submits after addressing audit feedback).
+- `signed_off` → only `delivered` (auditor or admin — no other role may set this).
 - `delivered` → no further transitions. It is the highest and final status.
 - Cancel is not a status transition. The attempt row is deleted; the task reverts to `reserved`.
 - `task_reviews.snapshot_version_id` must always be set when `completed_at` is set.
