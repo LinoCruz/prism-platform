@@ -47,11 +47,22 @@ export async function startReview(taskId: string, versionId: string) {
   return data
 }
 
+export interface ReviewerEdits {
+  is_question_valid?: boolean | null
+  question_invalid_reason?: string | null
+  new_question?: string | null
+  is_answer_valid?: boolean | null
+  answer_invalid_reason?: string | null
+  new_answer?: string | null
+  is_temporal?: boolean | null
+}
+
 export async function completeReview(
   reviewId: string,
   decision: Enums<'review_decision'>,
   score: number,
   feedback: string,
+  edits?: ReviewerEdits,
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -75,6 +86,11 @@ export async function completeReview(
   ])
   if (versionError) throw versionError
 
+  // For fixed_and_approved: merge reviewer edits into the snapshot payload
+  const snapshotPayload = decision === 'fixed_and_approved' && edits
+    ? { ...(currentVersion.data_payload as Record<string, unknown>), ...edits }
+    : currentVersion.data_payload
+
   // Create reviewer snapshot — captures the content at the moment of decision
   const { data: snapshot, error: snapshotError } = await supabase
     .from('task_versions')
@@ -84,7 +100,7 @@ export async function completeReview(
       created_by_user_id: user.id,
       source: 'reviewer',
       parent_version_id: currentVersionId,
-      data_payload: currentVersion.data_payload,
+      data_payload: snapshotPayload,
     })
     .select('version_id')
     .single()
@@ -105,11 +121,19 @@ export async function completeReview(
     .single()
   if (error) throw error
 
-  // Update task status and current_version_id based on decision
-  const nextStatus = decision === 'approved' ? 'signed_off' : 'sent_for_rework'
+  // fixed_and_approved and approved both move to signed_off; rework → sent_for_rework
+  const nextStatus = decision === 'rework' ? 'sent_for_rework' : 'signed_off'
+
+  // Build task update — always update status + version; also persist edits for fixed_and_approved
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taskUpdate: Record<string, any> = { status: nextStatus, current_version_id: snapshot.version_id }
+  if (decision === 'fixed_and_approved' && edits) {
+    Object.assign(taskUpdate, edits)
+  }
+
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: nextStatus, current_version_id: snapshot.version_id })
+    .update(taskUpdate)
     .eq('task_id', data.task_id)
   if (statusError) throw statusError
 

@@ -833,6 +833,57 @@ export type Database = {
           },
         ]
       }
+      task_time: {
+        Row: {
+          time_id: string
+          task_id: string
+          expert_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          reference_type: Database["public"]["Enums"]["time_reference_type"]
+          reference_id: string
+          segment_start: string
+          segment_end: string | null
+          last_heartbeat_at: string | null
+        }
+        Insert: {
+          time_id?: string
+          task_id: string
+          expert_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          reference_type: Database["public"]["Enums"]["time_reference_type"]
+          reference_id: string
+          segment_start?: string
+          segment_end?: string | null
+          last_heartbeat_at?: string | null
+        }
+        Update: {
+          time_id?: string
+          task_id?: string
+          expert_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          reference_type?: Database["public"]["Enums"]["time_reference_type"]
+          reference_id?: string
+          segment_start?: string
+          segment_end?: string | null
+          last_heartbeat_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_time_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_time_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       task_temporal_values: {
         Row: {
           id: string
@@ -987,6 +1038,7 @@ export type Database = {
     }
     Enums: {
       audit_action: "approve" | "send_back_to_reviewer" | "fix_themselves"
+      time_reference_type: "attempt" | "review" | "audit" | "review_fix"
       audit_decision: "approved" | "needs_changes"
       notification_type:
         | "TASK_REWORK"
@@ -995,7 +1047,7 @@ export type Database = {
         | "COURSE_REQUIRED"
         | "ANNOUNCEMENT"
       requirement_status: "pending" | "completed" | "expired"
-      review_decision: "approved" | "rework"
+      review_decision: "approved" | "rework" | "fixed_and_approved"
       task_status:
         | "available"
         | "reserved"
@@ -1143,6 +1195,7 @@ export const Constants = {
   public: {
     Enums: {
       audit_action: ["approve", "send_back_to_reviewer", "fix_themselves"],
+      time_reference_type: ["attempt", "review", "audit", "review_fix"],
       audit_decision: ["approved", "needs_changes"],
       notification_type: [
         "TASK_REWORK",
@@ -1152,7 +1205,7 @@ export const Constants = {
         "ANNOUNCEMENT",
       ],
       requirement_status: ["pending", "completed", "expired"],
-      review_decision: ["approved", "rework"],
+      review_decision: ["approved", "rework", "fixed_and_approved"],
       task_status: [
         "available",
         "reserved",

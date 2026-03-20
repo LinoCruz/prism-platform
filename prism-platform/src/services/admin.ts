@@ -353,24 +353,26 @@ export async function getAdminTaskDetails(taskId: string) {
   await checkAdmin()
   const supabase = await createClient()
 
-  const { data: task, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('task_id', taskId)
-    .single()
+  const [
+    { data: task, error },
+    { data: attempts },
+    { data: reviews },
+    { data: timingRows },
+  ] = await Promise.all([
+    supabase.from('tasks').select('*').eq('task_id', taskId).single(),
+    supabase.from('task_attempts').select('*').eq('task_id', taskId).order('attempt_number', { ascending: true }),
+    supabase.from('task_reviews').select('*').eq('task_id', taskId).order('review_number', { ascending: true }),
+    supabase.from('task_time').select('reference_id, segment_start, segment_end').eq('task_id', taskId),
+  ])
   if (error) throw error
 
-  const { data: attempts } = await supabase
-    .from('task_attempts')
-    .select('*')
-    .eq('task_id', taskId)
-    .order('attempt_number', { ascending: true })
-
-  const { data: reviews } = await supabase
-    .from('task_reviews')
-    .select('*')
-    .eq('task_id', taskId)
-    .order('review_number', { ascending: true })
+  // Aggregate total active seconds per reference_id from task_time segments
+  const timeMap: Record<string, number> = {}
+  for (const row of timingRows ?? []) {
+    const endMs = row.segment_end ? new Date(row.segment_end).getTime() : Date.now()
+    const seconds = Math.max(0, (endMs - new Date(row.segment_start).getTime()) / 1000)
+    timeMap[row.reference_id] = (timeMap[row.reference_id] ?? 0) + seconds
+  }
 
   // Resolve all referenced user IDs
   const userIds = new Set<string>()
@@ -392,6 +394,7 @@ export async function getAdminTaskDetails(taskId: string) {
     attempts: attempts ?? [],
     reviews: reviews ?? [],
     userMap,
+    timeMap,
   }
 }
 

@@ -44,6 +44,15 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function formatDuration(seconds: number): string {
+  const totalMinutes = Math.floor(seconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0) return `${hours}h ${minutes}m`
+  if (minutes > 0) return `${minutes}m`
+  return `${Math.floor(seconds)}s`
+}
+
 // ─── Task Detail Panel ────────────────────────────────────────────────────────
 
 type Trainer = { user_id: string; display_name: string; email: string; role: string }
@@ -244,10 +253,10 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                         </td>
                         <td className="p-2.5">
                           {(() => {
-                            const s = a.submitted_at ? 'submitted' : details.task.status === 'canceled' ? 'canceled' : 'in_progress'
-                            const cls = s === 'submitted' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                              : s === 'canceled' ? 'bg-red-500/20 text-red-300 border-red-500/30'
-                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            const s = a.submitted_at ? (a.attempt_number > 1 ? 'fixed' : 'completed') : details.task.status
+                            const cls = s === 'completed' || s === 'fixed' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                              : s === 'claimed' || s === 'reworking' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                              : 'bg-muted/20 text-muted border-muted/30'
                             return <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${cls}`}>{s.replaceAll('_', ' ')}</span>
                           })()}
                         </td>
@@ -257,13 +266,19 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                         </td>
                         <td className="p-2.5 text-muted tabular-nums">
                           {(() => {
+                            const tracked = details.timeMap[a.attempt_id]
+                            if (tracked !== undefined && tracked > 0) {
+                              return (
+                                <span title="Tracked active time">
+                                  {formatDuration(tracked)}
+                                </span>
+                              )
+                            }
+                            // Fallback to wall-clock diff when no task_time data yet
                             if (!a.submitted_at) return <span className="text-muted/40">—</span>
                             const ms = new Date(a.submitted_at).getTime() - new Date(a.claimed_at).getTime()
                             if (ms <= 0) return <span className="text-muted/40">—</span>
-                            const totalMinutes = Math.floor(ms / 60000)
-                            const hours = Math.floor(totalMinutes / 60)
-                            const minutes = totalMinutes % 60
-                            return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+                            return <span className="opacity-60" title="Wall-clock estimate (no heartbeat data)">{formatDuration(ms / 1000)}</span>
                           })()}
                         </td>
                         <td className="p-2.5 text-muted/60 font-mono">{a.attempt_id.slice(0, 8)}…</td>
@@ -300,6 +315,7 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                       <th className="p-2.5 font-medium">Score</th>
                       <th className="p-2.5 font-medium">Started</th>
                       <th className="p-2.5 font-medium">Completed</th>
+                      <th className="p-2.5 font-medium">Time</th>
                       <th className="p-2.5 font-medium">Feedback</th>
                     </tr>
                   </thead>
@@ -325,6 +341,13 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
                         <td className="p-2.5 text-muted tabular-nums">{new Date(r.started_at).toLocaleString()}</td>
                         <td className="p-2.5 text-muted tabular-nums">
                           {r.completed_at ? new Date(r.completed_at).toLocaleString() : <span className="text-muted/40">—</span>}
+                        </td>
+                        <td className="p-2.5 text-muted tabular-nums">
+                          {(() => {
+                            const tracked = details.timeMap[r.review_id]
+                            if (tracked !== undefined && tracked > 0) return formatDuration(tracked)
+                            return <span className="text-muted/40">—</span>
+                          })()}
                         </td>
                         <td className="p-2.5 text-muted max-w-xs">
                           <span className="line-clamp-2">{r.feedback ?? '—'}</span>
