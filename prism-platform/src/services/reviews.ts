@@ -54,6 +54,43 @@ export async function completeReview(
   feedback: string,
 ) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Fetch the review to get task_id, then fetch the task's current version
+  const { data: review, error: reviewFetchError } = await supabase
+    .from('task_reviews')
+    .select('task_id, tasks(current_version_id)')
+    .eq('review_id', reviewId)
+    .single()
+  if (reviewFetchError) throw reviewFetchError
+
+  const currentVersionId = (review.tasks as { current_version_id: string | null })?.current_version_id
+  if (!currentVersionId) throw new Error('Task has no current version to snapshot')
+
+  // Fetch current version data and version count for the new version number
+  const [{ data: currentVersion, error: versionError }, { count: versionCount }] = await Promise.all([
+    supabase.from('task_versions').select('data_payload, version_number').eq('version_id', currentVersionId).single(),
+    supabase.from('task_versions').select('*', { count: 'exact', head: true }).eq('task_id', review.task_id),
+  ])
+  if (versionError) throw versionError
+
+  // Create reviewer snapshot — captures the content at the moment of decision
+  const { data: snapshot, error: snapshotError } = await supabase
+    .from('task_versions')
+    .insert({
+      task_id: review.task_id,
+      version_number: (versionCount ?? 0) + 1,
+      created_by_user_id: user.id,
+      source: 'reviewer',
+      parent_version_id: currentVersionId,
+      data_payload: currentVersion.data_payload,
+    })
+    .select('version_id')
+    .single()
+  if (snapshotError) throw snapshotError
+
+  // Complete the review and link the snapshot in one update
   const { data, error } = await supabase
     .from('task_reviews')
     .update({
@@ -61,17 +98,18 @@ export async function completeReview(
       score,
       feedback,
       completed_at: new Date().toISOString(),
+      snapshot_version_id: snapshot.version_id,
     })
     .eq('review_id', reviewId)
     .select()
     .single()
   if (error) throw error
 
-  // Update task status based on decision
+  // Update task status and current_version_id based on decision
   const nextStatus = decision === 'approved' ? 'signed_off' : 'sent_for_rework'
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: nextStatus })
+    .update({ status: nextStatus, current_version_id: snapshot.version_id })
     .eq('task_id', data.task_id)
   if (statusError) throw statusError
 
@@ -100,9 +138,19 @@ export async function startAudit(reviewId: string) {
   const { data, error } = await supabase
     .from('review_audits')
     .insert({ review_id: reviewId, auditor_id: user.id })
-    .select()
+    .select('*, task_reviews(task_id)')
     .single()
   if (error) throw error
+
+  const taskId = (data.task_reviews as { task_id: string })?.task_id
+  if (taskId) {
+    const { error: statusError } = await supabase
+      .from('tasks')
+      .update({ status: 'auditing' })
+      .eq('task_id', taskId)
+    if (statusError) throw statusError
+  }
+
   return data
 }
 
@@ -114,6 +162,7 @@ export async function completeAudit(
   action: Enums<'audit_action'>,
 ) {
   const supabase = await createClient()
+
   const { data, error } = await supabase
     .from('review_audits')
     .update({
@@ -124,8 +173,20 @@ export async function completeAudit(
       completed_at: new Date().toISOString(),
     })
     .eq('audit_id', auditId)
-    .select()
+    .select('*, task_reviews(task_id)')
     .single()
   if (error) throw error
+
+  // approved → passed_audit; anything else → reviewer_fixing (reviewer must address audit feedback)
+  const nextStatus = action === 'approve' ? 'passed_audit' : 'reviewer_fixing'
+  const taskId = (data.task_reviews as { task_id: string })?.task_id
+  if (taskId) {
+    const { error: statusError } = await supabase
+      .from('tasks')
+      .update({ status: nextStatus })
+      .eq('task_id', taskId)
+    if (statusError) throw statusError
+  }
+
   return data
 }

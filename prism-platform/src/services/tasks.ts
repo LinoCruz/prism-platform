@@ -47,7 +47,7 @@ export async function getTasksForReview() {
   const { data, error } = await supabase
     .from('tasks')
     .select('*, task_versions!task_versions_task_id_fkey(*), task_attempts(*)')
-    .eq('status', 'completed')
+    .in('status', ['completed', 'fixed'])
     .order('created_at', { ascending: true })
   if (error) throw error
   return data
@@ -58,11 +58,12 @@ export async function claimTask(taskId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // Get the next attempt number
-  const { count } = await supabase
-    .from('task_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('task_id', taskId)
+  // Get the next attempt number and current status in one query
+  const [{ count }, { data: task, error: taskError }] = await Promise.all([
+    supabase.from('task_attempts').select('*', { count: 'exact', head: true }).eq('task_id', taskId),
+    supabase.from('tasks').select('status').eq('task_id', taskId).single(),
+  ])
+  if (taskError) throw taskError
 
   const { data, error } = await supabase
     .from('task_attempts')
@@ -75,10 +76,11 @@ export async function claimTask(taskId: string) {
     .single()
   if (error) throw error
 
-  // Update task status to claimed
+  // Rework re-claim → reworking; first claim → claimed
+  const nextStatus = task.status === 'sent_for_rework' ? 'reworking' : 'claimed'
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: 'claimed' })
+    .update({ status: nextStatus })
     .eq('task_id', taskId)
   if (statusError) throw statusError
 
@@ -92,10 +94,11 @@ export async function startTask(taskId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { count } = await supabase
-    .from('task_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('task_id', taskId)
+  const [{ count }, { data: task, error: taskError }] = await Promise.all([
+    supabase.from('task_attempts').select('*', { count: 'exact', head: true }).eq('task_id', taskId),
+    supabase.from('tasks').select('status').eq('task_id', taskId).single(),
+  ])
+  if (taskError) throw taskError
 
   const { data, error } = await supabase
     .from('task_attempts')
@@ -108,9 +111,11 @@ export async function startTask(taskId: string) {
     .single()
   if (error) throw error
 
+  // Rework re-claim → reworking; first claim → claimed
+  const nextStatus = task.status === 'sent_for_rework' ? 'reworking' : 'claimed'
   const { error: statusError } = await supabase
     .from('tasks')
-    .update({ status: 'claimed' })
+    .update({ status: nextStatus })
     .eq('task_id', taskId)
     .eq('reserved_for_id', user.id)
   if (statusError) throw statusError
@@ -119,8 +124,8 @@ export async function startTask(taskId: string) {
 }
 
 // Cancel a task: deletes the unsubmitted attempt and reverts the task to reserved.
-// NOTE: Once migrations 20260319000001 and 20260319000002 are pushed to the remote DB,
-// change this to keep the attempt and set status to 'canceled' instead.
+// Cancel is not a status — it means the expert closed the modal without submitting.
+// No attempt data is persisted.
 export async function cancelTask(taskId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -204,7 +209,7 @@ export async function submitTask(taskId: string, versionId: string) {
     .single()
   if (taskError) throw taskError
 
-  const nextStatus = task.status === 'sent_for_rework' ? 'fixed' : 'completed'
+  const nextStatus = task.status === 'reworking' ? 'fixed' : 'completed'
 
   const { error: statusError } = await supabase
     .from('tasks')

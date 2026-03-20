@@ -1003,9 +1003,13 @@ export type Database = {
         | "completed"
         | "in_review"
         | "sent_for_rework"
+        | "reworking"
         | "fixed"
         | "signed_off"
-        | "canceled"
+        | "auditing"
+        | "reviewer_fixing"
+        | "passed_audit"
+        | "delivered"
       user_role: "trainee" | "trainer" | "reviewer" | "auditor" | "admin"
       version_source: "trainer" | "reviewer" | "auditor"
     }
@@ -1156,9 +1160,13 @@ export const Constants = {
         "completed",
         "in_review",
         "sent_for_rework",
+        "reworking",
         "fixed",
         "signed_off",
-        "canceled",
+        "auditing",
+        "reviewer_fixing",
+        "passed_audit",
+        "delivered",
       ],
       user_role: ["trainee", "trainer", "reviewer", "auditor", "admin"],
       version_source: ["trainer", "reviewer", "auditor"],
