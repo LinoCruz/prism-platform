@@ -27,6 +27,21 @@ export async function getTaskById(taskId: string) {
   return data
 }
 
+export async function getReworkTasks() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('task_id, external_id, status, question')
+    .eq('status', 'sent_for_rework')
+    .eq('reserved_for_id', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function getMyTasks() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -44,13 +59,20 @@ export async function getMyTasks() {
 
 export async function getTasksForReview() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data, error } = await supabase
     .from('tasks')
     .select('*, task_versions!task_versions_task_id_fkey(*), task_attempts(*)')
     .in('status', ['completed', 'fixed'])
     .order('created_at', { ascending: true })
   if (error) throw error
-  return data
+
+  // Exclude tasks where the current reviewer was the trainer
+  return data.filter(
+    (task) => !task.task_attempts.some((attempt: { trainer_id: string }) => attempt.trainer_id === user.id)
+  )
 }
 
 export async function claimTask(taskId: string) {

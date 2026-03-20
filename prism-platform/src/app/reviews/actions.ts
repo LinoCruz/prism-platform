@@ -51,10 +51,59 @@ export async function startReviewAction(
 
     if (existing) return { reviewId: existing.review_id }
 
-    const review = await startReviewService(taskId, versionId)
+    // Resolve versionId — fall back to current_version_id, or create a baseline version
+    let resolvedVersionId = versionId
+    if (!resolvedVersionId) {
+      const { data: task, error: taskError } = await supabase
+        .from('tasks')
+        .select('current_version_id')
+        .eq('task_id', taskId)
+        .single()
+      if (taskError) return { error: taskError.message }
+
+      if (task.current_version_id) {
+        resolvedVersionId = task.current_version_id
+      } else {
+        // Task was submitted without a version snapshot — create a baseline from raw QA fields
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rawTask } = await supabase
+          .from('tasks')
+          .select('question, original_question, original_answer, is_question_valid, question_invalid_reason, new_question, is_answer_valid, answer_invalid_reason, new_answer, is_temporal' as any)
+          .eq('task_id', taskId)
+          .single()
+
+        const { data: newVersion, error: versionError } = await supabase
+          .from('task_versions')
+          .insert({
+            task_id: taskId,
+            version_number: 1,
+            created_by_user_id: user.id,
+            source: 'trainer',
+            data_payload: rawTask ?? {},
+          })
+          .select('version_id')
+          .single()
+        if (versionError) return { error: versionError.message }
+
+        await supabase
+          .from('tasks')
+          .update({ current_version_id: newVersion.version_id })
+          .eq('task_id', taskId)
+
+        resolvedVersionId = newVersion.version_id
+      }
+    }
+
+    const review = await startReviewService(taskId, resolvedVersionId)
     return { reviewId: review.review_id }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Failed to start review' }
+    const msg =
+      e instanceof Error
+        ? e.message
+        : typeof e === 'object' && e !== null && 'message' in e
+          ? String((e as { message: unknown }).message)
+          : JSON.stringify(e)
+    return { error: msg }
   }
 }
 

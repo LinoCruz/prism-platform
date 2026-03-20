@@ -314,7 +314,7 @@ export function StartReviewModal({ taskId, versionId, externalId, attemptCount }
     e.preventDefault()
     if (!decision) { setError('Please select a decision.'); return }
     const scoreNum = parseFloat(score)
-    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) { setError('Score must be between 0 and 100.'); return }
+    if (isNaN(scoreNum) || scoreNum < 1 || scoreNum > 5) { setError('Score must be between 1 and 5.'); return }
     if (!feedback.trim()) { setError('Feedback is required.'); return }
     if (!reviewId) { setError('Review session lost. Please close and try again.'); return }
 
@@ -422,15 +422,15 @@ export function StartReviewModal({ taskId, versionId, externalId, attemptCount }
 
               {/* Score */}
               <div className="flex flex-col gap-1.5">
-                <Label text="Score (0–100)" />
+                <Label text="Score (1–5)" />
                 <input
                   type="number"
                   value={score}
                   onChange={(e) => setScore(e.target.value)}
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  placeholder="e.g. 85"
+                  min={1}
+                  max={5}
+                  step={1}
+                  placeholder="e.g. 4"
                   className="w-40 rounded-xl border border-border bg-surface/50 px-3 py-2.5 text-sm text-primary outline-none focus:border-accent placeholder:text-muted"
                 />
               </div>

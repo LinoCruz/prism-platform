@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Enums } from '@/types/database.types'
+import { createNotification } from './notifications'
 
 export async function getMyReviews() {
   const supabase = await createClient()
@@ -71,12 +72,12 @@ export async function completeReview(
   // Fetch the review to get task_id, then fetch the task's current version
   const { data: review, error: reviewFetchError } = await supabase
     .from('task_reviews')
-    .select('task_id, tasks(current_version_id)')
+    .select('task_id, tasks(current_version_id, reserved_for_id, external_id)')
     .eq('review_id', reviewId)
     .single()
   if (reviewFetchError) throw reviewFetchError
 
-  const currentVersionId = (review.tasks as { current_version_id: string | null })?.current_version_id
+  const currentVersionId = (review.tasks as { current_version_id: string | null; reserved_for_id: string | null; external_id: string | null })?.current_version_id
   if (!currentVersionId) throw new Error('Task has no current version to snapshot')
 
   // Fetch current version data and version count for the new version number
@@ -136,6 +137,35 @@ export async function completeReview(
     .update(taskUpdate)
     .eq('task_id', data.task_id)
   if (statusError) throw statusError
+
+  // Notify the trainer of the review outcome
+  const taskMeta = review.tasks as { current_version_id: string | null; reserved_for_id: string | null; external_id: string | null }
+  if (taskMeta.reserved_for_id) {
+    try {
+      if (decision === 'rework') {
+        await createNotification(
+          taskMeta.reserved_for_id,
+          'TASK_REWORK',
+          'Task sent for rework',
+          `Your submission for task ${taskMeta.external_id ?? review.task_id} has been reviewed and requires rework. Please check the feedback and resubmit.`,
+          'task',
+          review.task_id,
+        )
+      } else {
+        const label = decision === 'fixed_and_approved' ? 'fixed and approved' : 'approved'
+        await createNotification(
+          taskMeta.reserved_for_id,
+          'REVIEW_COMPLETED',
+          'Task approved',
+          `Your submission for task ${taskMeta.external_id ?? review.task_id} has been ${label}. Great work!`,
+          'task',
+          review.task_id,
+        )
+      }
+    } catch {
+      // Notification failure should not block review completion
+    }
+  }
 
   return data
 }
