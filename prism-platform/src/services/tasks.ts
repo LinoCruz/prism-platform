@@ -27,6 +27,21 @@ export async function getTaskById(taskId: string) {
   return data
 }
 
+export async function getInProgressTasks() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('task_id, external_id, status, question')
+    .in('status', ['claimed', 'reworking'])
+    .eq('reserved_for_id', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function getReworkTasks() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

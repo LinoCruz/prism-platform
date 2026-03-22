@@ -11,7 +11,7 @@ type Task = {
   question: string | null
 }
 
-function TaskRow({ task, onRemove }: { task: Task; onRemove: (id: string) => void }) {
+function TaskRow({ task, onRemove, resumable }: { task: Task; onRemove: (id: string) => void; resumable?: boolean }) {
   const displayId = task.external_id ?? task.task_id.split('-')[0]
   return (
     <li className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-surface-hover/30 transition-colors">
@@ -29,6 +29,7 @@ function TaskRow({ task, onRemove }: { task: Task; onRemove: (id: string) => voi
           taskId={task.task_id}
           externalId={displayId}
           onSubmitted={() => onRemove(task.task_id)}
+          resumable={resumable}
         />
       </div>
     </li>
@@ -51,12 +52,15 @@ function TaskTable({ tasks, onRemove }: { tasks: Task[]; onRemove: (id: string) 
 export function TasksListClient({
   initialTasks,
   initialReworkTasks,
+  initialInProgressTasks,
 }: {
   initialTasks: Task[]
   initialReworkTasks: Task[]
+  initialInProgressTasks: Task[]
 }) {
   const [tasks, setTasks] = useState(initialTasks)
   const [reworkTasks, setReworkTasks] = useState(initialReworkTasks)
+  const [inProgressTasks, setInProgressTasks] = useState(initialInProgressTasks)
 
   function removeTask(taskId: string) {
     setTasks((prev) => prev.filter((t) => t.task_id !== taskId))
@@ -66,7 +70,11 @@ export function TasksListClient({
     setReworkTasks((prev) => prev.filter((t) => t.task_id !== taskId))
   }
 
-  const hasNone = tasks.length === 0 && reworkTasks.length === 0
+  function removeInProgressTask(taskId: string) {
+    setInProgressTasks((prev) => prev.filter((t) => t.task_id !== taskId))
+  }
+
+  const hasNone = tasks.length === 0 && reworkTasks.length === 0 && inProgressTasks.length === 0
 
   if (hasNone) {
     return (
@@ -82,6 +90,27 @@ export function TasksListClient({
 
   return (
     <div className="flex flex-col gap-8">
+      {inProgressTasks.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-orange-400/80">
+              In Progress
+            </h2>
+            <span className="inline-flex items-center rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+              {inProgressTasks.length}
+            </span>
+          </div>
+          <div className="relative overflow-hidden rounded-2xl bg-surface border border-orange-500/20">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500/40 via-orange-400/60 to-orange-500/40 z-20" />
+            <ul className="relative z-10 pt-1.5 divide-y divide-border">
+              {inProgressTasks.map((task) => (
+                <TaskRow key={task.task_id} task={task} onRemove={removeInProgressTask} resumable />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       {tasks.length > 0 && (
         <section>
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted mb-3">

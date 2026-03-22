@@ -12,6 +12,7 @@ interface Props {
   taskId: string
   externalId: string
   onSubmitted?: () => void
+  resumable?: boolean
 }
 
 function Spinner() {
@@ -97,7 +98,7 @@ const emptyQA = {
   temporalValues: [] as string[],
 }
 
-export function ClaimTaskModal({ taskId, externalId, onSubmitted }: Props) {
+export function ClaimTaskModal({ taskId, externalId, onSubmitted, resumable }: Props) {
   const [state, setState] = useState<ModalState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [qa, setQA] = useState(emptyQA)
@@ -130,9 +131,15 @@ export function ClaimTaskModal({ taskId, externalId, onSubmitted }: Props) {
 
   async function handleClaim() {
     if (isBusy || isModalVisible) return
-    setState('starting')
     setError(null)
 
+    if (resumable) {
+      window.open(`https://feather.openai.com/tasks/${externalId}`, '_blank')
+      setState('open')
+      return
+    }
+
+    setState('starting')
     const result = await startTaskAction(taskId)
     if (result.error) {
       setError(result.error)
@@ -204,19 +211,22 @@ export function ClaimTaskModal({ taskId, externalId, onSubmitted }: Props) {
 
             {/* Header */}
             <div className="relative z-10 px-6 pt-8 pb-4 shrink-0">
-              <h2 className="text-lg font-semibold text-primary">Submit Task</h2>
-              <p className="text-sm text-muted mt-1">
-                Complete your work on{' '}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-primary">Submit Task</h2>
+                  <p className="text-sm text-muted mt-1">
+                    Complete your work on Feather, then fill in the details below.
+                  </p>
+                </div>
                 <a
                   href={`https://feather.openai.com/tasks/${externalId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent hover:underline"
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-all"
                 >
-                  Feather
+                  Open in Feather ↗
                 </a>
-                , then fill in the details below.
-              </p>
+              </div>
             </div>
 
             {/* Scrollable form body */}
@@ -374,12 +384,18 @@ export function ClaimTaskModal({ taskId, externalId, onSubmitted }: Props) {
         type="button"
         disabled={isBusy || isModalVisible}
         onClick={handleClaim}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-surface-hover border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/10 hover:border-accent/50 hover:text-white transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(52,67,218,0.15)] disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed ${
+          resumable
+            ? 'bg-orange-500/20 border border-orange-500/50 text-orange-400 hover:bg-orange-500/30 hover:border-orange-500/70'
+            : 'bg-surface-hover border border-border text-foreground hover:bg-accent/10 hover:border-accent/50 hover:text-white group-hover:shadow-[0_0_20px_rgba(52,67,218,0.15)]'
+        }`}
       >
         {state === 'starting' ? (
           <><Spinner /> Starting…</>
         ) : isModalVisible ? (
           'Working on task…'
+        ) : resumable ? (
+          'Resume \u2192'
         ) : (
           'Claim Task \u2192'
         )}

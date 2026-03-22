@@ -1,4 +1,4 @@
-import { getAvailableTasks, getReworkTasks } from '@/services/tasks'
+import { getAvailableTasks, getReworkTasks, getInProgressTasks } from '@/services/tasks'
 import { createClient } from '@/lib/supabase/server'
 import { Navbar } from '@/components/Navbar'
 import { TasksListClient } from './TasksListClient'
@@ -8,9 +8,10 @@ export default async function TasksPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const name = user?.user_metadata?.full_name ?? user?.email ?? 'there'
 
-  const [tasks, reworkTasks] = await Promise.all([
+  const [tasks, reworkTasks, inProgressTasks] = await Promise.all([
     getAvailableTasks(),
     getReworkTasks(),
+    getInProgressTasks(),
   ])
 
   return (
@@ -26,7 +27,7 @@ export default async function TasksPage() {
           </p>
         </div>
 
-        <TasksListClient initialTasks={tasks} initialReworkTasks={reworkTasks} />
+        <TasksListClient initialTasks={tasks} initialReworkTasks={reworkTasks} initialInProgressTasks={inProgressTasks} />
       </main>
     </div>
   )
