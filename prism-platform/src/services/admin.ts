@@ -358,11 +358,13 @@ export async function getAdminTaskDetails(taskId: string) {
     { data: attempts },
     { data: reviews },
     { data: timingRows },
+    { data: versions },
   ] = await Promise.all([
     supabase.from('tasks').select('*').eq('task_id', taskId).single(),
     supabase.from('task_attempts').select('*').eq('task_id', taskId).order('attempt_number', { ascending: true }),
     supabase.from('task_reviews').select('*').eq('task_id', taskId).order('review_number', { ascending: true }),
     supabase.from('task_time').select('reference_id, segment_start, segment_end').eq('task_id', taskId),
+    supabase.from('task_versions').select('version_id, version_number, source, created_at, data_payload, created_by_user_id').eq('task_id', taskId).order('version_number', { ascending: true }),
   ])
   if (error) throw error
 
@@ -379,6 +381,7 @@ export async function getAdminTaskDetails(taskId: string) {
   if (task.reserved_for_id) userIds.add(task.reserved_for_id)
   attempts?.forEach(a => userIds.add(a.trainer_id))
   reviews?.forEach(r => userIds.add(r.reviewer_id))
+  versions?.forEach(v => userIds.add(v.created_by_user_id))
 
   let userMap: Record<string, { email: string; display_name: string }> = {}
   if (userIds.size > 0) {
@@ -393,6 +396,7 @@ export async function getAdminTaskDetails(taskId: string) {
     task,
     attempts: attempts ?? [],
     reviews: reviews ?? [],
+    versions: versions ?? [],
     userMap,
     timeMap,
   }

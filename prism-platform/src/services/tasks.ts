@@ -125,17 +125,23 @@ export async function claimTask(taskId: string) {
 }
 
 // Start a task: creates the attempt and marks the task as claimed.
-// Called immediately when the trainer clicks "Claim Task" (modal opens).
+// Called when the trainer clicks "Claim Task" or "Resume".
+// Idempotent: if an unsubmitted attempt already exists (e.g. after a tab close),
+// it returns the existing attempt instead of creating a duplicate.
 export async function startTask(taskId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const [{ count }, { data: task, error: taskError }] = await Promise.all([
+  const [{ data: existing }, { count }, { data: task, error: taskError }] = await Promise.all([
+    supabase.from('task_attempts').select('*').eq('task_id', taskId).eq('trainer_id', user.id).is('submitted_at', null).maybeSingle(),
     supabase.from('task_attempts').select('*', { count: 'exact', head: true }).eq('task_id', taskId),
     supabase.from('tasks').select('status').eq('task_id', taskId).single(),
   ])
   if (taskError) throw taskError
+
+  // Resume case: unsubmitted attempt already exists — reuse it, no new attempt needed
+  if (existing) return existing
 
   const { data, error } = await supabase
     .from('task_attempts')
@@ -168,19 +174,22 @@ export async function cancelTask(taskId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  await supabase
-    .from('task_attempts')
-    .delete()
-    .eq('task_id', taskId)
-    .eq('trainer_id', user.id)
-    .is('submitted_at', null)
-
+  // Update status first — if this fails, the attempt stays intact and the task
+  // remains in the correct state. Deleting the attempt before the status update
+  // could leave the task in `claimed`/`reworking` with no unsubmitted attempt.
   const { error } = await supabase
     .from('tasks')
     .update({ status: 'reserved' })
     .eq('task_id', taskId)
     .eq('reserved_for_id', user.id)
   if (error) throw error
+
+  await supabase
+    .from('task_attempts')
+    .delete()
+    .eq('task_id', taskId)
+    .eq('trainer_id', user.id)
+    .is('submitted_at', null)
 }
 
 // Finish a task: marks the attempt as submitted, saves QA data, and moves status to completed.
@@ -189,13 +198,17 @@ export async function finishTask(taskId: string, qaData: TaskQAData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { error: attemptError } = await supabase
+  const { data: updatedAttempts, error: attemptError } = await supabase
     .from('task_attempts')
     .update({ submitted_at: new Date().toISOString() })
     .eq('task_id', taskId)
     .eq('trainer_id', user.id)
     .is('submitted_at', null)
+    .select('attempt_id')
   if (attemptError) throw attemptError
+  if (!updatedAttempts || updatedAttempts.length === 0) {
+    throw new Error('No active attempt found for this task. Please refresh the page and try again.')
+  }
 
   const { error: qaError } = await supabase
     .from('tasks')

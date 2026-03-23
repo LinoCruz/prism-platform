@@ -57,6 +57,228 @@ function formatDuration(seconds: number): string {
   return `${Math.floor(seconds)}s`
 }
 
+// ─── Version Content Modal ────────────────────────────────────────────────────
+
+type VersionRow = Awaited<ReturnType<typeof fetchTaskDetails>>['versions'][number]
+
+function VersionContentModal({ version, onClose }: { version: VersionRow; onClose: () => void }) {
+  const formatted = JSON.stringify(version.data_payload, null, 2)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-primary">Version {version.version_number} · {version.source}</h3>
+            <p className="text-xs text-muted mt-0.5">{new Date(version.created_at).toLocaleString()}</p>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-primary transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="overflow-auto flex-1 p-5">
+          <pre className="text-xs font-mono text-primary whitespace-pre-wrap break-all leading-relaxed">{formatted}</pre>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Timeline Components ───────────────────────────────────────────────────────
+
+function ReviewCard({ review, details }: {
+  review: TaskDetails['reviews'][number]
+  details: TaskDetails
+}) {
+  const tracked = details.timeMap[review.review_id]
+  return (
+    <div className="rounded-xl border border-purple-500/20 bg-surface/30 p-3">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span className="text-xs font-semibold text-purple-400">Review #{review.review_number}</span>
+        {review.decision && (
+          <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${
+            review.decision === 'approved'
+              ? 'bg-green-500/20 text-green-300 border-green-500/30'
+              : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+          }`}>{review.decision.replaceAll('_', ' ')}</span>
+        )}
+        {review.score != null && (
+          <span className="text-[10px] text-muted border border-border/50 bg-surface/50 px-2 py-0.5 rounded-full">Score: {review.score}</span>
+        )}
+        {!review.completed_at && (
+          <span className="text-[10px] border border-purple-500/30 bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full">In progress</span>
+        )}
+        <span className="ml-auto text-[10px] text-muted/50 font-mono">{review.review_id.slice(0, 8)}…</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted/60">Reviewer</span>
+          <p className="text-primary mt-0.5 truncate">{details.userMap[review.reviewer_id]?.email ?? review.reviewer_id.slice(0, 8) + '…'}</p>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted/60">Started</span>
+          <p className="text-muted mt-0.5 tabular-nums">{new Date(review.started_at).toLocaleString()}</p>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted/60">Completed</span>
+          <p className="text-muted mt-0.5 tabular-nums">
+            {review.completed_at ? new Date(review.completed_at).toLocaleString() : <span className="text-muted/40">—</span>}
+          </p>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted/60">Active Time</span>
+          <p className="text-muted mt-0.5">{tracked && tracked > 0 ? formatDuration(tracked) : <span className="text-muted/40">—</span>}</p>
+        </div>
+      </div>
+      {review.feedback && (
+        <div className="mt-2 pt-2 border-t border-border/30">
+          <span className="text-[10px] uppercase tracking-wide text-muted/60">Feedback</span>
+          <p className="text-xs text-muted mt-0.5 leading-relaxed whitespace-pre-wrap">{review.feedback}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TaskTimeline({ details, onViewContent }: {
+  details: TaskDetails
+  onViewContent: (v: VersionRow) => void
+}) {
+  const versionMap = Object.fromEntries((details.versions ?? []).map(v => [v.version_id, v]))
+
+  // Primary index: version_id → reviews
+  const reviewsByVersion: Record<string, TaskDetails['reviews']> = {}
+  for (const r of details.reviews) {
+    if (r.version_id) {
+      reviewsByVersion[r.version_id] ??= []
+      reviewsByVersion[r.version_id].push(r)
+    }
+  }
+
+  // Assign reviews to attempts: prefer version_id match, fall back to time window
+  const assignedReviewIds = new Set<string>()
+  const attemptReviewsMap: Record<string, TaskDetails['reviews']> = {}
+
+  for (let i = 0; i < details.attempts.length; i++) {
+    const attempt = details.attempts[i]
+    const nextAttempt = details.attempts[i + 1]
+
+    if (attempt.version_id && reviewsByVersion[attempt.version_id]) {
+      // Happy path: link by version_id
+      attemptReviewsMap[attempt.attempt_id] = reviewsByVersion[attempt.version_id]
+    } else if (attempt.submitted_at) {
+      // Fallback: reviews that started after submission and before the next attempt was claimed
+      const submitMs = new Date(attempt.submitted_at).getTime()
+      const nextClaimMs = nextAttempt ? new Date(nextAttempt.claimed_at).getTime() : Infinity
+      attemptReviewsMap[attempt.attempt_id] = details.reviews.filter(r => {
+        if (r.version_id) return false // belongs to a version-linked attempt
+        const startMs = new Date(r.started_at).getTime()
+        return startMs >= submitMs && startMs < nextClaimMs
+      })
+    } else {
+      attemptReviewsMap[attempt.attempt_id] = []
+    }
+
+    attemptReviewsMap[attempt.attempt_id].forEach(r => assignedReviewIds.add(r.review_id))
+  }
+
+  const orphanReviews = details.reviews.filter(r => !assignedReviewIds.has(r.review_id))
+
+  if (details.attempts.length === 0 && details.reviews.length === 0) {
+    return <p className="text-xs text-muted/60">No activity yet.</p>
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {details.attempts.map(attempt => {
+        const version = attempt.version_id ? versionMap[attempt.version_id] : null
+        const reviews = attemptReviewsMap[attempt.attempt_id] ?? []
+        const reworkReview = attempt.rework_due_to_review_id
+          ? details.reviews.find(r => r.review_id === attempt.rework_due_to_review_id)
+          : null
+        const tracked = details.timeMap[attempt.attempt_id]
+        const wallClock = (!tracked && attempt.submitted_at)
+          ? Math.max(0, new Date(attempt.submitted_at).getTime() - new Date(attempt.claimed_at).getTime()) / 1000
+          : null
+
+        return (
+          <div key={attempt.attempt_id} className="flex flex-col gap-2">
+            <div className="rounded-xl border border-blue-500/20 bg-surface/30 p-3">
+              <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-blue-400">Attempt #{attempt.attempt_number}</span>
+                  {reworkReview && (
+                    <span className="text-[10px] border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded-full">
+                      Rework of Review #{reworkReview.review_number}
+                    </span>
+                  )}
+                  {!attempt.submitted_at && (
+                    <span className="text-[10px] border border-blue-500/30 bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">In progress</span>
+                  )}
+                  <span className="text-[10px] text-muted/50 font-mono">{attempt.attempt_id.slice(0, 8)}…</span>
+                </div>
+                {version && (
+                  <button
+                    onClick={() => onViewContent(version)}
+                    className="shrink-0 text-[10px] font-medium text-accent hover:text-accent/80 border border-accent/30 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-lg transition-all"
+                  >
+                    View Content (v{version.version_number})
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wide text-muted/60">Trainer</span>
+                  <p className="text-primary mt-0.5 truncate">{details.userMap[attempt.trainer_id]?.email ?? attempt.trainer_id.slice(0, 8) + '…'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wide text-muted/60">Claimed</span>
+                  <p className="text-muted mt-0.5 tabular-nums">{new Date(attempt.claimed_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wide text-muted/60">Submitted</span>
+                  <p className="text-muted mt-0.5 tabular-nums">
+                    {attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString() : <span className="text-muted/40">In progress…</span>}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wide text-muted/60">Active Time</span>
+                  <p className="text-muted mt-0.5">
+                    {tracked && tracked > 0
+                      ? formatDuration(tracked)
+                      : wallClock && wallClock > 0
+                        ? <span className="opacity-60" title="Wall-clock estimate">{formatDuration(wallClock)}</span>
+                        : <span className="text-muted/40">—</span>
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {reviews.length > 0 && (
+              <div className="ml-4 flex flex-col gap-2">
+                {reviews.map(review => (
+                  <ReviewCard key={review.review_id} review={review} details={details} />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {orphanReviews.length > 0 && (
+        <div className="flex flex-col gap-2 mt-1">
+          <p className="text-[10px] uppercase tracking-widest text-muted/60 font-medium">Unlinked Reviews</p>
+          {orphanReviews.map(review => (
+            <ReviewCard key={review.review_id} review={review} details={details} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Task Detail Panel ────────────────────────────────────────────────────────
 
 type Trainer = { user_id: string; display_name: string; email: string; role: string }
@@ -64,14 +286,14 @@ type Trainer = { user_id: string; display_name: string; email: string; role: str
 function AdminActionsSection({ taskId, status, onActionDone }: { taskId: string; status: string; onActionDone: () => void }) {
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [selectedExpert, setSelectedExpert] = useState('')
-  const [loadingTrainers, setLoadingTrainers] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const canAct = ['reserved', 'claimed'].includes(status)
 
+  const [loadingTrainers, setLoadingTrainers] = useState(canAct)
+
   useEffect(() => {
     if (!canAct) return
-    setLoadingTrainers(true)
     fetchActiveTrainers()
       .then(setTrainers)
       .catch(() => toast.error('Failed to load trainers.'))
@@ -153,17 +375,14 @@ function AdminActionsSection({ taskId, status, onActionDone }: { taskId: string;
 function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const [details, setDetails] = useState<TaskDetails | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewingVersion, setViewingVersion] = useState<VersionRow | null>(null)
 
-  function load() {
-    setLoading(true)
-    setDetails(null)
+  useEffect(() => {
     fetchTaskDetails(taskId)
       .then(setDetails)
       .catch(e => toast.error(e instanceof Error ? e.message : 'Failed to load task details.'))
       .finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [taskId])
+  }, [taskId])
 
   return (
     <div className="mt-4 rounded-2xl border border-accent/30 bg-surface/30 p-6">
@@ -227,143 +446,25 @@ function TaskDetailPane({ taskId, onClose }: { taskId: string; onClose: () => vo
             </section>
           )}
 
-          {/* Attempt History */}
+          {/* Full Task History */}
           <section>
             <h4 className="text-xs uppercase tracking-widest text-muted font-medium mb-3">
-              Attempt History ({details.attempts.length})
+              Full Task History ({details.attempts.length} attempt{details.attempts.length !== 1 ? 's' : ''}, {details.reviews.length} review{details.reviews.length !== 1 ? 's' : ''})
             </h4>
-            {details.attempts.length === 0 ? (
-              <p className="text-xs text-muted/60">No attempts yet.</p>
-            ) : (
-              <div className="rounded-xl border border-border/50 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-surface/30 text-secondary">
-                      <th className="p-2.5 font-medium">#</th>
-                      <th className="p-2.5 font-medium">Trainer</th>
-                      <th className="p-2.5 font-medium">Status</th>
-                      <th className="p-2.5 font-medium">Claimed At</th>
-                      <th className="p-2.5 font-medium">Submitted At</th>
-                      <th className="p-2.5 font-medium">Task Time</th>
-                      <th className="p-2.5 font-medium">Attempt ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {details.attempts.map(a => (
-                      <tr key={a.attempt_id} className="border-b border-border/50 hover:bg-surface-hover/40">
-                        <td className="p-2.5 text-muted">{a.attempt_number}</td>
-                        <td className="p-2.5 text-primary">
-                          {details.userMap[a.trainer_id]?.email ?? a.trainer_id.slice(0, 8) + '…'}
-                        </td>
-                        <td className="p-2.5">
-                          {(() => {
-                            const s = a.submitted_at ? (a.attempt_number > 1 ? 'fixed' : 'completed') : details.task.status
-                            const cls = s === 'completed' || s === 'fixed' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                              : s === 'claimed' || s === 'reworking' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                              : 'bg-muted/20 text-muted border-muted/30'
-                            return <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${cls}`}>{s.replaceAll('_', ' ')}</span>
-                          })()}
-                        </td>
-                        <td className="p-2.5 text-muted tabular-nums">{new Date(a.claimed_at).toLocaleString()}</td>
-                        <td className="p-2.5 text-muted tabular-nums">
-                          {a.submitted_at ? new Date(a.submitted_at).toLocaleString() : <span className="text-muted/40">—</span>}
-                        </td>
-                        <td className="p-2.5 text-muted tabular-nums">
-                          {(() => {
-                            const tracked = details.timeMap[a.attempt_id]
-                            if (tracked !== undefined && tracked > 0) {
-                              return (
-                                <span title="Tracked active time">
-                                  {formatDuration(tracked)}
-                                </span>
-                              )
-                            }
-                            // Fallback to wall-clock diff when no task_time data yet
-                            if (!a.submitted_at) return <span className="text-muted/40">—</span>
-                            const ms = new Date(a.submitted_at).getTime() - new Date(a.claimed_at).getTime()
-                            if (ms <= 0) return <span className="text-muted/40">—</span>
-                            return <span className="opacity-60" title="Wall-clock estimate (no heartbeat data)">{formatDuration(ms / 1000)}</span>
-                          })()}
-                        </td>
-                        <td className="p-2.5 text-muted/60 font-mono">{a.attempt_id.slice(0, 8)}…</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <TaskTimeline details={details} onViewContent={setViewingVersion} />
           </section>
 
           {/* Admin Actions */}
           <AdminActionsSection
             taskId={details.task.task_id}
             status={details.task.status}
-            onActionDone={() => { onClose(); load() }}
+            onActionDone={onClose}
           />
-
-          {/* Review History */}
-          <section>
-            <h4 className="text-xs uppercase tracking-widest text-muted font-medium mb-3">
-              Review History ({details.reviews.length})
-            </h4>
-            {details.reviews.length === 0 ? (
-              <p className="text-xs text-muted/60">No reviews yet.</p>
-            ) : (
-              <div className="rounded-xl border border-border/50 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-surface/30 text-secondary">
-                      <th className="p-2.5 font-medium">#</th>
-                      <th className="p-2.5 font-medium">Reviewer</th>
-                      <th className="p-2.5 font-medium">Decision</th>
-                      <th className="p-2.5 font-medium">Score</th>
-                      <th className="p-2.5 font-medium">Started</th>
-                      <th className="p-2.5 font-medium">Completed</th>
-                      <th className="p-2.5 font-medium">Time</th>
-                      <th className="p-2.5 font-medium">Feedback</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {details.reviews.map(r => (
-                      <tr key={r.review_id} className="border-b border-border/50 hover:bg-surface-hover/40 align-top">
-                        <td className="p-2.5 text-muted">{r.review_number}</td>
-                        <td className="p-2.5 text-primary">
-                          {details.userMap[r.reviewer_id]?.email ?? r.reviewer_id.slice(0, 8) + '…'}
-                        </td>
-                        <td className="p-2.5">
-                          {r.decision ? (
-                            <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-medium capitalize ${
-                              r.decision === 'approved'
-                                ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                                : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-                            }`}>
-                              {r.decision}
-                            </span>
-                          ) : <span className="text-muted/40">—</span>}
-                        </td>
-                        <td className="p-2.5 text-muted tabular-nums">{r.score ?? '—'}</td>
-                        <td className="p-2.5 text-muted tabular-nums">{new Date(r.started_at).toLocaleString()}</td>
-                        <td className="p-2.5 text-muted tabular-nums">
-                          {r.completed_at ? new Date(r.completed_at).toLocaleString() : <span className="text-muted/40">—</span>}
-                        </td>
-                        <td className="p-2.5 text-muted tabular-nums">
-                          {(() => {
-                            const tracked = details.timeMap[r.review_id]
-                            if (tracked !== undefined && tracked > 0) return formatDuration(tracked)
-                            return <span className="text-muted/40">—</span>
-                          })()}
-                        </td>
-                        <td className="p-2.5 text-muted max-w-xs">
-                          <span className="line-clamp-2">{r.feedback ?? '—'}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
         </div>
+      )}
+
+      {viewingVersion && (
+        <VersionContentModal version={viewingVersion} onClose={() => setViewingVersion(null)} />
       )}
     </div>
   )

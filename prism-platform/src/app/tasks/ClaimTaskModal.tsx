@@ -133,12 +133,6 @@ export function ClaimTaskModal({ taskId, externalId, onSubmitted, resumable }: P
     if (isBusy || isModalVisible) return
     setError(null)
 
-    if (resumable) {
-      window.open(`https://feather.openai.com/tasks/${externalId}`, '_blank')
-      setState('open')
-      return
-    }
-
     setState('starting')
     const result = await startTaskAction(taskId)
     if (result.error) {
