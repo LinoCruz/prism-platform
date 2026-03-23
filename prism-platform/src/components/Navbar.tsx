@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Logo from './Logo'
 import { getCurrentUser } from '@/services/users'
 import { UserMenu } from './UserMenu'
+import { NotificationBell } from './NotificationBell'
 
 const ROLE_RANK: Record<string, number> = {
   trainee: 1, trainer: 2, reviewer: 3, auditor: 4, admin: 5,
@@ -52,7 +53,7 @@ export async function Navbar() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isAdmin && (
             <Link
               href="/admin"
@@ -61,6 +62,7 @@ export async function Navbar() {
               Admin
             </Link>
           )}
+          <NotificationBell />
           <UserMenu displayName={displayName} firstName={firstName} lastName={lastName} personalEmail={personalEmail} />
         </div>
       </div>
